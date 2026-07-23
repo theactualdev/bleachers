@@ -12,6 +12,6 @@ test('login form accepts an email and shows the sent state', async ({ page }) =>
   await page.goto('/login');
   await page.getByPlaceholder('you@example.com').fill('e2e@bleachers.app');
   await page.getByRole('button', { name: /magic link/i }).click();
-  // The API accepts the request; the dev magic link is printed to the API console.
+  // Supabase accepts the OTP request; the email is delivered via configured SMTP.
   await expect(page.getByText('Check your email')).toBeVisible({ timeout: 30_000 });
 });

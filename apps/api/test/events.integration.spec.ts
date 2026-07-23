@@ -6,6 +6,7 @@ import { EventsService } from '../src/events/events.service';
 import { StatisticsService } from '../src/statistics/statistics.service';
 import { MatchesService } from '../src/matches/matches.service';
 import type { RealtimeGateway } from '../src/realtime/realtime.gateway';
+import { createTestUser, deleteTestUser } from './helpers/auth';
 
 /**
  * Integration test against a real Postgres (uses DATABASE_URL). Exercises the event-sourcing
@@ -23,7 +24,7 @@ describe('Events + Statistics (integration)', () => {
   const stats = new StatisticsService(prisma);
   const matches = new MatchesService(prisma);
 
-  const userId = `test-user-${randomUUID()}`;
+  let userId = '';
   let homeTeamId = '';
   let awayTeamId = '';
   let p1 = '';
@@ -32,9 +33,7 @@ describe('Events + Statistics (integration)', () => {
 
   beforeAll(async () => {
     await prisma.$connect();
-    await prisma.user.create({
-      data: { id: userId, name: 'Test', email: `${userId}@test.local`, emailVerified: true },
-    });
+    userId = await createTestUser();
     const home = await prisma.team.create({
       data: {
         name: 'Home',
@@ -77,8 +76,8 @@ describe('Events + Statistics (integration)', () => {
     await prisma.match.deleteMany({ where: { id: matchId } });
     await prisma.team.deleteMany({ where: { id: { in: [homeTeamId, awayTeamId] } } });
     await prisma.player.deleteMany({ where: { id: { in: [p1, p2] } } });
-    await prisma.user.deleteMany({ where: { id: userId } });
     await prisma.$disconnect();
+    await deleteTestUser(userId);
   });
 
   it('records a goal and derives the score', async () => {
