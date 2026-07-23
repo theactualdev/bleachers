@@ -42,3 +42,6 @@ Thumbs.db
 # PWA generated
 apps/web/public/sw.js
 apps/web/public/workbox-*.js
+
+# Subagent-driven dev scratch
+.superpowers/
