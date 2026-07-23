@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, CheckCircle2 } from 'lucide-react';
-import { authClient } from '@/lib/auth-client';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input, Label } from '@/components/ui/input';
@@ -19,7 +19,10 @@ export default function LoginPage() {
     e.preventDefault();
     setStatus('sending');
     setError('');
-    const { error } = await authClient.signIn.magicLink({ email, callbackURL: '/' });
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/` },
+    });
     if (error) {
       setStatus('error');
       setError(error.message ?? 'Could not send the link');
@@ -54,7 +57,7 @@ export default function LoginPage() {
                 We sent a sign-in link to <span className="text-ink-1 font-medium">{email}</span>.
               </p>
               <p className="text-ink-3 mt-2 text-xs">
-                In local dev the link is printed to the API console.
+                In dev, the link is emailed to you (SMTP configured in Supabase).
               </p>
             </motion.div>
           ) : (
@@ -86,9 +89,9 @@ export default function LoginPage() {
                 variant="glass"
                 className="w-full"
                 onClick={() =>
-                  authClient.signIn.social({
+                  supabase.auth.signInWithOAuth({
                     provider: 'google',
-                    callbackURL: `${window.location.origin}/`,
+                    options: { redirectTo: `${window.location.origin}/` },
                   })
                 }
               >
