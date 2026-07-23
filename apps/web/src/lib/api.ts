@@ -1,0 +1,49 @@
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+    public readonly body?: unknown,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+/**
+ * Thin fetch wrapper. Always sends cookies (Better Auth session) and JSON. Throws ApiError on
+ * non-2xx so TanStack Query can surface errors uniformly.
+ */
+export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, {
+    ...init,
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(init.headers ?? {}),
+    },
+  });
+
+  if (!res.ok) {
+    let body: unknown;
+    try {
+      body = await res.json();
+    } catch {
+      body = await res.text().catch(() => undefined);
+    }
+    const message = (body as { message?: string })?.message ?? `Request failed (${res.status})`;
+    throw new ApiError(res.status, message, body);
+  }
+
+  if (res.status === 204) return undefined as T;
+  const text = await res.text();
+  return (text ? JSON.parse(text) : undefined) as T;
+}
+
+export const apiGet = <T>(path: string) => api<T>(path);
+export const apiPost = <T>(path: string, data?: unknown) =>
+  api<T>(path, { method: 'POST', body: data === undefined ? undefined : JSON.stringify(data) });
+export const apiPatch = <T>(path: string, data?: unknown) =>
+  api<T>(path, { method: 'PATCH', body: JSON.stringify(data) });
+export const apiDelete = <T>(path: string) => api<T>(path, { method: 'DELETE' });

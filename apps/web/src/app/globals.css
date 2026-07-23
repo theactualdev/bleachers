@@ -1,0 +1,222 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================================
+   Bleachers — Liquid Glass design system.
+
+   Structure (glass, blur, radii, type, motion) is constant. Only the identity
+   tokens below — base, accent, ink, live — change per theme. Switch the whole
+   app by setting `data-theme` on <html>:
+     floodlight-amber (default) · monochrome · electric-lime · pitch-green
+   ========================================================================= */
+:root {
+  /* Glass surfaces (theme-independent) */
+  --glass-fill: rgba(255, 255, 255, 0.055);
+  --glass-fill-strong: rgba(255, 255, 255, 0.095);
+  --glass-fill-faint: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-highlight: rgba(255, 255, 255, 0.14);
+
+  /* Warning is a constant amber signal across all themes. */
+  --warning: #ffb23f;
+
+  --radius: 24px;
+
+  /* Legacy semantic vars (dark, neutral-warm) so any not-yet-rebuilt screen
+     still reads as part of the system during the incremental rollout. */
+  --background: 36 14% 4%;
+  --foreground: 40 30% 96%;
+  --card: 36 12% 9%;
+  --card-foreground: 40 30% 96%;
+  --primary: 38 100% 60%;
+  --primary-foreground: 36 40% 6%;
+  --secondary: 36 10% 16%;
+  --secondary-foreground: 40 30% 96%;
+  --muted: 36 10% 15%;
+  --muted-foreground: 40 12% 66%;
+  --accent-legacy: 36 10% 18%;
+  --accent-legacy-foreground: 40 30% 96%;
+  --destructive: 353 100% 68%;
+  --destructive-foreground: 36 40% 6%;
+  --success: 147 63% 52%;
+  --success-foreground: 36 40% 6%;
+  --border: 36 10% 18%;
+  --input: 36 10% 18%;
+  --ring: 38 100% 60%;
+}
+
+/* ---- Themes ------------------------------------------------------------- */
+
+/* Floodlight amber (default) — warm charcoal, sodium-lamp gold. */
+:root,
+[data-theme='floodlight-amber'] {
+  --bg-base: #0c0a08;
+  --bg-tint: 255 174 53;
+  --tint-strength: 0.06;
+  --text-1: #f7f5f1;
+  --text-2: rgba(247, 245, 241, 0.62);
+  --text-3: rgba(247, 245, 241, 0.4);
+  --accent: #ffae35;
+  --accent-2: #ff9636;
+  --accent-ink: #1a1206;
+  --live: #ffb13b;
+  --negative: #ff5d6a;
+}
+
+/* Monochrome — neutral ink, team colours do all the work. */
+[data-theme='monochrome'] {
+  --bg-base: #0a0b0d;
+  --bg-tint: 255 255 255;
+  --tint-strength: 0.04;
+  --text-1: #f4f6f8;
+  --text-2: rgba(244, 246, 248, 0.6);
+  --text-3: rgba(244, 246, 248, 0.4);
+  --accent: #f2f4f7;
+  --accent-2: #d7dbe0;
+  --accent-ink: #0a0b0d;
+  --live: #ffffff;
+  --negative: #ff5d6a;
+}
+
+/* Electric lime — cool ink, broadcast lime. */
+[data-theme='electric-lime'] {
+  --bg-base: #0a0c0a;
+  --bg-tint: 190 255 60;
+  --tint-strength: 0.05;
+  --text-1: #f4f7f0;
+  --text-2: rgba(244, 247, 240, 0.6);
+  --text-3: rgba(244, 247, 240, 0.4);
+  --accent: #c8f542;
+  --accent-2: #a6e02f;
+  --accent-ink: #10160a;
+  --live: #c8f542;
+  --negative: #ff5d6a;
+}
+
+/* Deep pitch green — evergreen night, bright turf green. */
+[data-theme='pitch-green'] {
+  --bg-base: #07100b;
+  --bg-tint: 52 211 130;
+  --tint-strength: 0.05;
+  --text-1: #eef6f0;
+  --text-2: rgba(238, 246, 240, 0.6);
+  --text-3: rgba(238, 246, 240, 0.4);
+  --accent: #2fd074;
+  --accent-2: #23b862;
+  --accent-ink: #052012;
+  --live: #2fd074;
+  --negative: #ff5d6a;
+}
+
+/* ============================================================================
+   Base
+   ========================================================================= */
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-1);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+}
+
+button {
+  touch-action: manipulation;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--text-1);
+}
+
+/* ============================================================================
+   Atmosphere — one faint, static accent-tinted glow + a whisper of grain.
+   No drifting blooms, no rainbow gradients. Just enough for glass to catch.
+   ========================================================================= */
+@layer components {
+  .app-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: -10;
+    overflow: hidden;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        120% 70% at 50% -15%,
+        rgba(var(--bg-tint), var(--tint-strength)),
+        transparent 55%
+      ),
+      var(--bg-base);
+  }
+
+  .app-noise {
+    position: absolute;
+    inset: 0;
+    opacity: 0.03;
+    mix-blend-mode: soft-light;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---- Glass surface recipes ---- */
+  .glass {
+    background: var(--glass-fill);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 var(--glass-highlight);
+  }
+
+  .glass-strong {
+    background: var(--glass-fill-strong);
+    backdrop-filter: blur(32px) saturate(1.5);
+    -webkit-backdrop-filter: blur(32px) saturate(1.5);
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 var(--glass-highlight);
+  }
+
+  /* Bright top rim — the "light catching the edge" of real glass. */
+  .rim::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 40%);
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+}
+
+/* Tabular figures for scores/stats. */
+.tabnums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* ============================================================================
+   Motion accessibility
+   ========================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  .animate-breathe,
+  .animate-shimmer {
+    animation: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: bleachers-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bleachers
+      POSTGRES_PASSWORD: bleachers
+      POSTGRES_DB: bleachers
+    ports:
+      - "5432:5432"
+    volumes:
+      - bleachers-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bleachers -d bleachers"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: bleachers-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://bleachers:bleachers@db:5432/bleachers?schema=public
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-only-change-me-please-generate-a-real-secret}
+      BETTER_AUTH_URL: http://localhost:4000
+      WEB_ORIGIN: http://localhost:3000
+      API_PORT: "4000"
+    ports:
+      - "4000:4000"
+    profiles: ["full"]
+
+volumes:
+  bleachers-db-data:

@@ -1,0 +1,9 @@
+{
+  "extends": "@bleachers/config/tsconfig/library.json",
+  "compilerOptions": {
+    "composite": false,
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*"]
+}

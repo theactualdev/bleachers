@@ -1,0 +1,288 @@
+// Bleachers — event-sourced domain + Better Auth tables share one Postgres database.
+// Events are append-only: the only permitted mutation is a correction (voided = true).
+// No derived statistic is ever stored here — stats are folded from the Event stream.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Better Auth (core schema). Managed by Better Auth; domain rows FK to User.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id            String   @id
+  name          String   @default("")
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions Session[]
+  accounts Account[]
+
+  // Domain back-references (ownership / audit).
+  createdPlayers      Player[]          @relation("PlayerCreatedBy")
+  createdTeams        Team[]            @relation("TeamCreatedBy")
+  createdMatches      Match[]           @relation("MatchCreatedBy")
+  recordedEvents      Event[]           @relation("EventRecordedBy")
+  voidedEvents        Event[]           @relation("EventVoidedBy")
+  permissionGrants    PermissionGrant[]
+  createdCompetitions Competition[]     @relation("CompetitionCreatedBy")
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+
+  @@map("verification")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Domain enums
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum Sport {
+  FOOTBALL
+  BASKETBALL
+  VOLLEYBALL
+}
+
+enum StatTier {
+  BASIC
+  ADVANCED
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  PAUSED
+  COMPLETED
+  ABANDONED
+}
+
+enum MatchSide {
+  HOME
+  AWAY
+}
+
+enum Role {
+  OWNER
+  SCORER
+  VIEWER
+}
+
+enum PermissionScope {
+  TEAM
+  COMPETITION
+  MATCH
+}
+
+enum CompetitionFormat {
+  KNOCKOUT
+  ROUND_ROBIN
+  GROUPS
+  LADDER
+  COLLECTION
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Domain models
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Player {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  dateOfBirth String? // YYYY-MM-DD
+  photo       String?
+  createdById String
+  createdBy   User     @relation("PlayerCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rosterEntries RosterEntry[]
+  lineups       MatchLineup[]
+  events        Event[]
+
+  @@index([createdById])
+  @@map("player")
+}
+
+model Team {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  // colors stored as JSON { primary, secondary? }
+  colors      Json
+  logo        String?
+  sport       Sport
+  isAdHoc     Boolean  @default(false)
+  createdById String
+  createdBy   User     @relation("TeamCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  roster     RosterEntry[]
+  homeMatches Match[]      @relation("HomeTeam")
+  awayMatches Match[]      @relation("AwayTeam")
+
+  @@index([createdById])
+  @@map("team")
+}
+
+model RosterEntry {
+  id           String   @id @default(uuid()) @db.Uuid
+  teamId       String   @db.Uuid
+  team         Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  playerId     String   @db.Uuid
+  player       Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  jerseyNumber String?
+  createdAt    DateTime @default(now())
+
+  @@unique([teamId, playerId])
+  @@index([playerId])
+  @@map("roster_entry")
+}
+
+model Competition {
+  id          String            @id @default(uuid()) @db.Uuid
+  name        String
+  sport       Sport
+  format      CompetitionFormat
+  createdById String
+  createdBy   User              @relation("CompetitionCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  matches Match[]
+
+  @@map("competition")
+}
+
+model Match {
+  id            String       @id @default(uuid()) @db.Uuid
+  sport         Sport
+  homeTeamId    String       @db.Uuid
+  homeTeam      Team         @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeamId    String       @db.Uuid
+  awayTeam      Team         @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  venue         String?
+  scheduledAt   DateTime
+  status        MatchStatus  @default(SCHEDULED)
+  statTier      StatTier     @default(BASIC)
+  competitionId String?      @db.Uuid
+  competition   Competition? @relation(fields: [competitionId], references: [id], onDelete: SetNull)
+  createdById   String
+  createdBy     User         @relation("MatchCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  lineups MatchLineup[]
+  events  Event[]
+
+  @@index([status])
+  @@index([competitionId])
+  @@map("match")
+}
+
+model MatchLineup {
+  id                   String    @id @default(uuid()) @db.Uuid
+  matchId              String    @db.Uuid
+  match                Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  side                 MatchSide
+  playerId             String    @db.Uuid
+  player               Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  isStarter            Boolean   @default(true)
+  jerseyNumberOverride String?
+  createdAt            DateTime  @default(now())
+
+  @@unique([matchId, playerId])
+  @@index([matchId])
+  @@map("match_lineup")
+}
+
+/// The immutable event. Append-only; corrections set `voided`. Nothing is ever deleted.
+model Event {
+  id              String    @id @db.Uuid // client-generated UUID = idempotency key
+  matchId         String    @db.Uuid
+  match           Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  type            String // sport-config event-type id
+  side            MatchSide
+  playerId        String?   @db.Uuid
+  player          Player?   @relation(fields: [playerId], references: [id], onDelete: SetNull)
+  period          Int
+  clockMs         Int       @default(0)
+  metadata        Json      @default("{}")
+  voided          Boolean   @default(false)
+  voidedById      String?
+  voidedBy        User?     @relation("EventVoidedBy", fields: [voidedById], references: [id])
+  voidedAt        DateTime?
+  replacesEventId String?   @db.Uuid
+  replaces        Event?    @relation("EventReplacement", fields: [replacesEventId], references: [id])
+  replacedBy      Event[]   @relation("EventReplacement")
+  recordedById    String
+  recordedBy      User      @relation("EventRecordedBy", fields: [recordedById], references: [id])
+  recordedAt      DateTime  @default(now())
+
+  @@index([matchId, voided])
+  @@index([playerId])
+  @@map("event")
+}
+
+model PermissionGrant {
+  id         String          @id @default(uuid()) @db.Uuid
+  userId     String
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role
+  scope      PermissionScope
+  resourceId String          @db.Uuid
+  createdAt  DateTime        @default(now())
+
+  @@unique([userId, scope, resourceId])
+  @@index([scope, resourceId])
+  @@map("permission_grant")
+}
