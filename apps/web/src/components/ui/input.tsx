@@ -18,9 +18,6 @@ Input.displayName = 'Input';
 
 export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
   return (
-    <label
-      className={cn('text-ink-2 text-sm font-medium leading-none', className)}
-      {...props}
-    />
+    <label className={cn('text-ink-2 text-sm font-medium leading-none', className)} {...props} />
   );
 }

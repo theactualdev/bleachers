@@ -65,13 +65,16 @@ export function Select({
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="glass ease-spring focus-visible:ring-brand focus-visible:ring-offset-canvas flex h-11 w-full items-center justify-between gap-2 rounded-md px-4 text-left text-[15px] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 active:scale-[0.99]"
+        className="glass ease-spring focus-visible:ring-brand focus-visible:ring-offset-canvas flex h-11 w-full items-center justify-between gap-2 rounded-md px-4 text-left text-[15px] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
       >
         <span className={cn('truncate', selected ? 'text-ink-1' : 'text-ink-3')}>
           {selected?.label ?? placeholder}
         </span>
         <ChevronDown
-          className={cn('text-ink-3 h-4 w-4 shrink-0 transition-transform duration-200', open && 'rotate-180')}
+          className={cn(
+            'text-ink-3 h-4 w-4 shrink-0 transition-transform duration-200',
+            open && 'rotate-180',
+          )}
         />
       </button>
 
@@ -99,7 +102,9 @@ export function Select({
                     className="hover:bg-glass flex w-full items-center justify-between gap-2 rounded-sm px-3 py-2 text-left transition-colors"
                   >
                     <span className="min-w-0">
-                      <span className="text-ink-1 block truncate text-sm font-medium">{o.label}</span>
+                      <span className="text-ink-1 block truncate text-sm font-medium">
+                        {o.label}
+                      </span>
                       {o.sublabel && (
                         <span className="text-ink-3 block truncate text-xs">{o.sublabel}</span>
                       )}

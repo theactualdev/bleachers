@@ -72,9 +72,7 @@ export function MatchCard({ match }: { match: MatchWithTeams }) {
             />
           </div>
 
-          {match.venue && (
-            <p className="text-ink-3 mt-4 truncate text-xs">{match.venue}</p>
-          )}
+          {match.venue && <p className="text-ink-3 mt-4 truncate text-xs">{match.venue}</p>}
         </div>
       </motion.article>
     </Link>
@@ -97,13 +95,8 @@ function ScoreRow({
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="flex min-w-0 items-center gap-3">
-        <span
-          className="h-8 w-1.5 shrink-0 rounded-full"
-          style={{ backgroundColor: color }}
-        />
-        <span
-          className={`truncate text-[15px] font-semibold ${dim ? 'text-ink-2' : 'text-ink-1'}`}
-        >
+        <span className="h-8 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+        <span className={`truncate text-[15px] font-semibold ${dim ? 'text-ink-2' : 'text-ink-1'}`}>
           {name}
         </span>
         {lead && (

@@ -21,11 +21,12 @@ export function ConnectivityBanner() {
           transition={{ type: 'spring', stiffness: 400, damping: 32 }}
           className="fixed inset-x-0 top-3 z-30 mx-auto flex w-fit max-w-[92%] justify-center px-4"
         >
-          <div className="glass-strong rim text-ink-1 flex items-center gap-2 rounded-pill px-4 py-2 text-xs font-medium">
+          <div className="glass-strong rim text-ink-1 rounded-pill flex items-center gap-2 px-4 py-2 text-xs font-medium">
             {!online ? (
               <>
                 <CloudOff className="text-warning h-3.5 w-3.5" />
-                Offline — {pending} event{pending === 1 ? '' : 's'} queued, syncing when you reconnect
+                Offline — {pending} event{pending === 1 ? '' : 's'} queued, syncing when you
+                reconnect
               </>
             ) : (
               <>

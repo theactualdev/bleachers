@@ -79,8 +79,14 @@ const config: Config = {
         // Semantic scale — deliberately few sizes.
         eyebrow: ['0.6875rem', { lineHeight: '1', letterSpacing: '0.16em', fontWeight: '600' }],
         stat: ['1.625rem', { lineHeight: '1', letterSpacing: '-0.01em', fontWeight: '700' }],
-        'score-sm': ['2.25rem', { lineHeight: '0.9', letterSpacing: '-0.015em', fontWeight: '800' }],
-        score: ['clamp(3.25rem, 13vw, 5rem)', { lineHeight: '0.85', letterSpacing: '-0.02em', fontWeight: '800' }],
+        'score-sm': [
+          '2.25rem',
+          { lineHeight: '0.9', letterSpacing: '-0.015em', fontWeight: '800' },
+        ],
+        score: [
+          'clamp(3.25rem, 13vw, 5rem)',
+          { lineHeight: '0.85', letterSpacing: '-0.02em', fontWeight: '800' },
+        ],
       },
       borderRadius: {
         none: '0',

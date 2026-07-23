@@ -192,12 +192,7 @@ function Steps({ current, labels }: { current: number; labels: string[] }) {
               i <= current ? 'bg-brand' : 'bg-glass',
             )}
           />
-          <span
-            className={cn(
-              'text-eyebrow',
-              i === current ? 'text-ink-1' : 'text-ink-3',
-            )}
-          >
+          <span className={cn('text-eyebrow', i === current ? 'text-ink-1' : 'text-ink-3')}>
             {label}
           </span>
         </div>

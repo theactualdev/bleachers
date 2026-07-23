@@ -41,7 +41,7 @@ export function Nav() {
                 <motion.span
                   layoutId="nav-active"
                   transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-                  className="absolute inset-0 rounded-xl border border-hairline bg-glass"
+                  className="border-hairline bg-glass absolute inset-0 rounded-xl border"
                 />
               )}
               <span className="relative z-10 flex flex-col items-center gap-1">

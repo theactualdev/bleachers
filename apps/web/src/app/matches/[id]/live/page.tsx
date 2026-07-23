@@ -169,7 +169,7 @@ function LiveScoring({ id }: { id: string }) {
               key={p}
               onClick={() => setPeriod(p)}
               className={cn(
-                'ease-spring h-9 rounded-pill px-4 text-sm font-semibold transition-all duration-200 active:scale-95',
+                'ease-spring rounded-pill h-9 px-4 text-sm font-semibold transition-all duration-200 active:scale-95',
                 period === p
                   ? 'bg-brand text-brand-ink shadow-button'
                   : 'glass text-ink-2 hover:text-ink-1',

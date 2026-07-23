@@ -21,7 +21,11 @@ function verifier(keyResolver: unknown) {
   });
 }
 
-async function sign(privateKey: CryptoKey, claims: Record<string, unknown>, opts?: { aud?: string; exp?: string }) {
+async function sign(
+  privateKey: CryptoKey,
+  claims: Record<string, unknown>,
+  opts?: { aud?: string; exp?: string },
+) {
   return new SignJWT(claims)
     .setProtectedHeader({ alg: 'RS256', kid: 'test-key' })
     .setIssuer(ISSUER)

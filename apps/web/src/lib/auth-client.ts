@@ -11,7 +11,11 @@ export interface AppSession {
 function toAppSession(session: Session | null): AppSession | null {
   if (!session) return null;
   const u = session.user;
-  const meta = (u.user_metadata ?? {}) as { name?: string; full_name?: string; avatar_url?: string };
+  const meta = (u.user_metadata ?? {}) as {
+    name?: string;
+    full_name?: string;
+    avatar_url?: string;
+  };
   return {
     user: {
       id: u.id,

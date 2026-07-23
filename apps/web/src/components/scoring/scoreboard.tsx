@@ -41,7 +41,7 @@ export function Scoreboard({
         </div>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
           <TeamBlock name={homeName} color={homeColor} align="left" />
-          <div className="font-display tabnums text-ink-1 flex items-center gap-2.5 text-score leading-none">
+          <div className="font-display tabnums text-ink-1 text-score flex items-center gap-2.5 leading-none">
             <motion.span key={score[0]} initial={{ scale: 1.3 }} animate={{ scale: 1 }}>
               {score[0]}
             </motion.span>

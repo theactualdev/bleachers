@@ -20,7 +20,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        'text-eyebrow inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 uppercase',
+        'text-eyebrow rounded-pill inline-flex items-center gap-1.5 px-2.5 py-1 uppercase',
         variants[variant],
         className,
       )}
@@ -33,8 +33,8 @@ export function Badge({
 export function LiveDot() {
   return (
     <span className="relative flex h-1.5 w-1.5">
-      <span className="animate-breathe absolute inline-flex h-full w-full rounded-full bg-live" />
-      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-live" />
+      <span className="animate-breathe bg-live absolute inline-flex h-full w-full rounded-full" />
+      <span className="bg-live relative inline-flex h-1.5 w-1.5 rounded-full" />
     </span>
   );
 }

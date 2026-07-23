@@ -107,7 +107,7 @@ Two frustrations motivate this change: local Docker is slow to start on this mac
   }
   ```
 - `DATABASE_URL` = Supabase **session-pooler** string (port 5432, `prisma` role). `DIRECT_URL` = direct/session connection for migrations.
-- **Security model:** the DB is reached only through Prisma with a restricted `prisma` role; the **Data API (PostgREST) is disabled**, so `public` tables are not web-exposed. RLS is therefore **not required** and is intentionally **not enabled on `public` tables**, because the `prisma` app role would otherwise be blocked by RLS unless granted `BYPASSRLS`. If the Data API is ever re-enabled, RLS must be added *and* the `prisma` role granted `BYPASSRLS` (or made table owner) so API queries keep working. `service_role` and JWT secrets never ship to the browser (only `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` are public).
+- **Security model:** the DB is reached only through Prisma with a restricted `prisma` role; the **Data API (PostgREST) is disabled**, so `public` tables are not web-exposed. RLS is therefore **not required** and is intentionally **not enabled on `public` tables**, because the `prisma` app role would otherwise be blocked by RLS unless granted `BYPASSRLS`. If the Data API is ever re-enabled, RLS must be added _and_ the `prisma` role granted `BYPASSRLS` (or made table owner) so API queries keep working. `service_role` and JWT secrets never ship to the browser (only `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` are public).
 
 ### 5. Seed & migrations
 

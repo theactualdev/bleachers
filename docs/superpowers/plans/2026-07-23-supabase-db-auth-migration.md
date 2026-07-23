@@ -41,6 +41,7 @@ Expected: `true true true true`. If any `false`, stop and request the value from
 ## Task 1: Add dependencies and Supabase env config
 
 **Files:**
+
 - Modify: `apps/api/package.json` (deps)
 - Modify: `apps/web/package.json` (deps)
 - Modify: `apps/api/src/config/env.ts`
@@ -48,11 +49,13 @@ Expected: `true true true true`. If any `false`, stop and request the value from
 - Create: `apps/web/.env.example`
 
 **Interfaces:**
+
 - Produces: `env.supabase = { url, jwksUrl, issuer, serviceRoleKey, jwtSecret }`, `env.directUrl`, `env.webOrigins`, `env.port`, `env.databaseUrl` from `apps/api/src/config/env.ts`.
 
 - [ ] **Step 1: Add API deps, remove Better Auth + nodemailer**
 
 Run:
+
 ```bash
 pnpm --filter @bleachers/api remove better-auth nodemailer
 pnpm --filter @bleachers/api add -E jose @supabase/supabase-js
@@ -61,6 +64,7 @@ pnpm --filter @bleachers/api add -E jose @supabase/supabase-js
 - [ ] **Step 2: Add web dep, remove Better Auth**
 
 Run:
+
 ```bash
 pnpm --filter @bleachers/web remove better-auth
 pnpm --filter @bleachers/web add -E @supabase/supabase-js
@@ -113,6 +117,7 @@ export const env = loadEnv();
 - [ ] **Step 4: Update `.env.example` (API section)**
 
 Replace any `BETTER_AUTH_*`, `SMTP_*`, `GOOGLE_*`, and `EMAIL_FROM` lines with:
+
 ```dotenv
 # --- apps/api/.env ---
 DATABASE_URL="postgres://prisma.<ref>:<password>@<region>.pooler.supabase.com:5432/postgres"
@@ -150,10 +155,12 @@ git commit -m "chore: add supabase-js/jose, drop better-auth/nodemailer, supabas
 ## Task 2: Supabase JWT verifier (JWKS) with unit tests
 
 **Files:**
+
 - Create: `apps/api/src/auth/supabase-jwt.ts`
 - Create: `apps/api/test/supabase-jwt.spec.ts`
 
 **Interfaces:**
+
 - Produces:
   - `interface VerifiedUser { id: string; email: string | null; name: string | null; image: string | null }`
   - `interface JwtVerifier { verify(token: string): Promise<VerifiedUser> }`
@@ -185,7 +192,11 @@ function verifier(keyResolver: unknown) {
   });
 }
 
-async function sign(privateKey: CryptoKey, claims: Record<string, unknown>, opts?: { aud?: string; exp?: string }) {
+async function sign(
+  privateKey: CryptoKey,
+  claims: Record<string, unknown>,
+  opts?: { aud?: string; exp?: string },
+) {
   return new SignJWT(claims)
     .setProtectedHeader({ alg: 'RS256', kid: 'test-key' })
     .setIssuer(ISSUER)
@@ -303,6 +314,7 @@ git commit -m "feat(api): local Supabase JWT verifier (JWKS) with tests"
 ## Task 3: API auth backend cutover (JWKS guard, remove Better Auth)
 
 **Files:**
+
 - Modify: `apps/api/src/auth/auth.types.ts`
 - Modify: `apps/api/src/auth/auth.guard.ts`
 - Modify: `apps/api/src/auth/auth.module.ts`
@@ -310,6 +322,7 @@ git commit -m "feat(api): local Supabase JWT verifier (JWKS) with tests"
 - Delete: `apps/api/src/auth/auth.instance.ts`, `apps/api/src/auth/email.ts`
 
 **Interfaces:**
+
 - Consumes: `createSupabaseJwtVerifier`, `JwtVerifier`, `VerifiedUser` (Task 2); `env.supabase` (Task 1).
 - Produces: DI token `JWT_VERIFIER`; `AuthUser = VerifiedUser`; `request.user: AuthUser`. `@Public()` and `@CurrentUser()` unchanged.
 
@@ -459,12 +472,14 @@ git commit -m "feat(api): verify Supabase JWTs in AuthGuard; remove Better Auth"
 ## Task 4: Prisma schema cutover to `profiles` + trigger migration + seed rework
 
 **Files:**
+
 - Modify: `apps/api/prisma/schema.prisma`
 - Delete: existing dirs under `apps/api/prisma/migrations/`
 - Create: fresh baseline migration (generated) + `apps/api/prisma/migrations/<ts>_supabase_auth_link/migration.sql` (hand-authored)
 - Modify: `apps/api/prisma/seed.ts`
 
 **Interfaces:**
+
 - Consumes: `env.supabase.serviceRoleKey`, `env.supabase.url` (Task 1).
 - Produces: Prisma model `Profile` (table `profiles`); Prisma client accessor `prisma.profile`.
 
@@ -481,6 +496,7 @@ datasource db {
 - [ ] **Step 2: Replace the `User` model and delete `Session`/`Account`/`Verification`**
 
 Replace the `model User { ... }` block with:
+
 ```prisma
 model Profile {
   id        String   @id @db.Uuid
@@ -502,14 +518,17 @@ model Profile {
   @@map("profiles")
 }
 ```
+
 Then delete the entire `model Session { ... }`, `model Account { ... }`, and `model Verification { ... }` blocks.
 
 - [ ] **Step 3: Repoint the relation names from `User` to `Profile`**
 
 In every domain model, change the relation field type `User` → `Profile` (relation names stay the same). For example in `Player`:
+
 ```prisma
   createdBy   Profile  @relation("PlayerCreatedBy", fields: [createdById], references: [id])
 ```
+
 Apply the same `User` → `Profile` change in `Team.createdBy`, `Match.createdBy`, `Event.recordedBy`, `Event.voidedBy`, `PermissionGrant.user`, and `Competition.createdBy`. Change the `createdById`/`recordedById`/`voidedById`/`userId` scalar columns to `@db.Uuid` if not already, so they match `profiles.id`.
 
 - [ ] **Step 4: Validate the schema**
@@ -520,6 +539,7 @@ Expected: "The schema at prisma/schema.prisma is valid 🚀".
 - [ ] **Step 5: Generate a fresh baseline migration WITHOUT a shadow database**
 
 `prisma migrate dev` needs a shadow DB the restricted `prisma` role can't create on Supabase, so generate the baseline SQL offline with `migrate diff` instead:
+
 ```bash
 rm -rf apps/api/prisma/migrations
 mkdir -p apps/api/prisma/migrations/00000000000000_init
@@ -529,11 +549,13 @@ pnpm --filter @bleachers/api exec prisma migrate diff \
   --to-schema-datamodel prisma/schema.prisma \
   --script > apps/api/prisma/migrations/00000000000000_init/migration.sql
 ```
+
 Confirm the file contains `CREATE TABLE "profiles"` and no `session`/`account`/`verification` tables.
 
 - [ ] **Step 6: Add the hand-authored FK + trigger migration**
 
 Create `apps/api/prisma/migrations/00000000000001_supabase_auth_link/migration.sql` (the numeric prefix sorts it after `init`):
+
 ```sql
 -- Link profiles to Supabase auth.users and auto-create a profile row on signup.
 alter table public.profiles
@@ -565,19 +587,24 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 ```
+
 Confirm ordering: `ls apps/api/prisma/migrations` lists `00000000000000_init` before `00000000000001_supabase_auth_link`.
 
 - [ ] **Step 7: Apply migrations to Supabase and regenerate the client**
 
 Run:
+
 ```bash
 pnpm --filter @bleachers/api exec prisma migrate deploy
 pnpm --filter @bleachers/api exec prisma generate
 ```
+
 Expected: both migrations report as applied; client generated. Then confirm state:
+
 ```bash
 pnpm --filter @bleachers/api exec prisma migrate status
 ```
+
 Expected: "Database schema is up to date!"
 
 - [ ] **Step 8: Rewrite `apps/api/prisma/seed.ts`**
@@ -627,6 +654,7 @@ main()
     process.exit(1);
   });
 ```
+
 Then in the existing seeding body, delete the `prisma.user.upsert(...)` block entirely and replace every `DEMO_USER_ID` reference with `userId`.
 
 - [ ] **Step 9: Run the seed against Supabase**
@@ -651,11 +679,13 @@ git commit -m "feat(api): profiles model + auth.users trigger; seed via Supabase
 ## Task 5: Web Supabase client + Bearer-token API wrapper
 
 **Files:**
+
 - Create: `apps/web/src/lib/supabase.ts`
 - Modify: `apps/web/src/lib/api.ts`
 - Create: `apps/web/src/lib/api.test.ts`
 
 **Interfaces:**
+
 - Produces: `supabase` browser client; `api()`/`apiGet`/`apiPost`/`apiPatch`/`apiDelete` now attach `Authorization: Bearer <token>`.
 
 - [ ] **Step 1: Create `apps/web/src/lib/supabase.ts`**
@@ -789,12 +819,14 @@ git commit -m "feat(web): supabase browser client; attach Bearer token to API ca
 ## Task 6: Web auth screens cutover (session hook, login, gate, header)
 
 **Files:**
+
 - Rewrite: `apps/web/src/lib/auth-client.ts`
 - Modify: `apps/web/src/app/login/page.tsx`
 - Modify: `apps/web/src/components/auth-gate.tsx` (import only — API is unchanged)
 - Modify: `apps/web/src/components/page-header.tsx` (import only — API is unchanged)
 
 **Interfaces:**
+
 - Consumes: `supabase` (Task 5).
 - Produces: `useSession(): { data: { user: { id: string; email: string; name: string | null; image: string | null } } | null; isPending: boolean }`; `signOut(): Promise<unknown>`. Same shape the existing components consume (`data?.user.email`, `isPending`).
 
@@ -814,7 +846,11 @@ export interface AppSession {
 function toAppSession(session: Session | null): AppSession | null {
   if (!session) return null;
   const u = session.user;
-  const meta = (u.user_metadata ?? {}) as { name?: string; full_name?: string; avatar_url?: string };
+  const meta = (u.user_metadata ?? {}) as {
+    name?: string;
+    full_name?: string;
+    avatar_url?: string;
+  };
   return {
     user: {
       id: u.id,
@@ -856,24 +892,27 @@ export const signOut = () => supabase.auth.signOut();
 - [ ] **Step 2: Update the login handlers in `apps/web/src/app/login/page.tsx`**
 
 Remove the `import { authClient } from '@/lib/auth-client';` line and add `import { supabase } from '@/lib/supabase';`. Replace `sendMagicLink`'s body:
+
 ```ts
-  async function sendMagicLink(e: React.FormEvent) {
-    e.preventDefault();
-    setStatus('sending');
-    setError('');
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${window.location.origin}/` },
-    });
-    if (error) {
-      setStatus('error');
-      setError(error.message ?? 'Could not send the link');
-    } else {
-      setStatus('sent');
-    }
+async function sendMagicLink(e: React.FormEvent) {
+  e.preventDefault();
+  setStatus('sending');
+  setError('');
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: `${window.location.origin}/` },
+  });
+  if (error) {
+    setStatus('error');
+    setError(error.message ?? 'Could not send the link');
+  } else {
+    setStatus('sent');
   }
+}
 ```
+
 Replace the Google button `onClick` with:
+
 ```ts
                 onClick={() =>
                   supabase.auth.signInWithOAuth({
@@ -904,6 +943,7 @@ git commit -m "feat(web): Supabase Auth for magic link + Google; session hook"
 ## Task 7: Scripts, docs, and memory
 
 **Files:**
+
 - Modify: `package.json` (root scripts)
 - Modify: `README.md`
 - Modify: `docker-compose.yml` (comment only)
@@ -912,17 +952,20 @@ git commit -m "feat(web): Supabase Auth for magic link + Google; session hook"
 - [ ] **Step 1: Update root `package.json` db scripts**
 
 Set:
+
 ```json
     "db:migrate": "pnpm --filter @bleachers/api exec prisma migrate deploy",
     "db:migrate:dev": "pnpm --filter @bleachers/api exec prisma migrate dev",
     "db:generate": "pnpm --filter @bleachers/api exec prisma generate",
     "db:seed": "pnpm --filter @bleachers/api exec prisma db seed",
 ```
+
 Keep `db:up`/`db:down` as-is (optional Docker fallback).
 
 - [ ] **Step 2: Update `README.md` quick start**
 
 Replace the "Database (Postgres via Docker)" section with:
+
 ```markdown
 ## Quick start
 
@@ -955,11 +998,13 @@ git commit -m "docs: Supabase-based dev workflow; scripts retarget Supabase"
 ## Task 8: Test rework + full verification gate
 
 **Files:**
+
 - Create: `apps/api/test/helpers/auth.ts`
 - Modify: `apps/api/test/events.integration.spec.ts`
 - Modify: `apps/web/tests-e2e/auth.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `env`-style `process.env.SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`.
 - Produces: `createTestUser(): Promise<string>`, `deleteTestUser(id: string): Promise<void>`.
 
@@ -990,8 +1035,8 @@ export async function deleteTestUser(id: string): Promise<void> {
 - [ ] **Step 2: Update `apps/api/test/events.integration.spec.ts`**
 
 At the top add: `import { createTestUser, deleteTestUser } from './helpers/auth';`
-Replace the `const userId = \`test-user-${randomUUID()}\`;` line with `let userId = '';`.
-In `beforeAll`, replace the `await prisma.user.create({ ... })` block with `userId = await createTestUser();`.
+Replace the `const userId = \`test-user-${randomUUID()}\`;`line with`let userId = '';`.
+In `beforeAll`, replace the `await prisma.user.create({ ... })`block with`userId = await createTestUser();`.
 In `afterAll`, after the existing domain-data cleanup (events → matches → players → teams), add `await deleteTestUser(userId);` as the final step (its cascade removes the profile).
 
 - [ ] **Step 3: Run the integration test (live — needs Supabase env)**
@@ -1006,12 +1051,14 @@ Keep the first test (redirect to `/login`) unchanged. In the second test, update
 - [ ] **Step 5: Full verification gate**
 
 Run each and confirm PASS:
+
 ```bash
 pnpm format:check
 pnpm typecheck
 pnpm --filter @bleachers/api test
 pnpm --filter @bleachers/web test
 ```
+
 (`pnpm lint` if the ESLint binary resolves; if not, run `pnpm install` first.)
 
 - [ ] **Step 6: Live smoke test**

@@ -39,7 +39,7 @@ export default async function PublicMatchPage({ params }: { params: Promise<{ id
           Bleachers
         </span>
         <span
-          className={`text-eyebrow inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 ${
+          className={`text-eyebrow rounded-pill inline-flex items-center gap-1.5 px-2.5 py-1 ${
             live
               ? 'text-live border-live/30 bg-live/10 border'
               : 'text-ink-2 border-hairline bg-glass border'
@@ -66,7 +66,7 @@ export default async function PublicMatchPage({ params }: { params: Promise<{ id
             />
             <span className="text-ink-1 truncate font-semibold">{homeTeam.name}</span>
           </div>
-          <div className="font-display tabnums text-ink-1 flex items-center gap-2 text-score leading-none">
+          <div className="font-display tabnums text-ink-1 text-score flex items-center gap-2 leading-none">
             {stats.score[0]} <span className="text-ink-3 text-3xl">·</span> {stats.score[1]}
           </div>
           <div className="flex flex-row-reverse items-center gap-2.5">
@@ -77,7 +77,9 @@ export default async function PublicMatchPage({ params }: { params: Promise<{ id
             <span className="text-ink-1 truncate text-right font-semibold">{awayTeam.name}</span>
           </div>
         </div>
-        {match.venue && <p className="text-ink-3 relative mt-4 text-center text-xs">{match.venue}</p>}
+        {match.venue && (
+          <p className="text-ink-3 relative mt-4 text-center text-xs">{match.venue}</p>
+        )}
       </div>
 
       {stats.timeline.length > 0 && (
@@ -90,7 +92,8 @@ export default async function PublicMatchPage({ params }: { params: Promise<{ id
                 <span
                   className="h-4 w-1 shrink-0 rounded-full"
                   style={{
-                    backgroundColor: t.side === 'HOME' ? homeTeam.colors.primary : awayTeam.colors.primary,
+                    backgroundColor:
+                      t.side === 'HOME' ? homeTeam.colors.primary : awayTeam.colors.primary,
                   }}
                 />
                 <span className="font-medium">

@@ -17,11 +17,14 @@ const buttonVariants = cva(
         live: 'bg-live text-brand-ink shadow-button hover:brightness-[1.06] active:brightness-95',
         danger: 'bg-negative text-white shadow-button hover:brightness-[1.06] active:brightness-95',
         // Legacy names mapped onto the new system so un-rebuilt screens keep working.
-        default: 'bg-brand text-brand-ink shadow-button hover:brightness-[1.06] active:brightness-95',
+        default:
+          'bg-brand text-brand-ink shadow-button hover:brightness-[1.06] active:brightness-95',
         secondary: 'glass text-ink-1 hover:bg-glass-strong',
         outline: 'glass text-ink-1 hover:bg-glass-strong',
-        destructive: 'bg-negative text-white shadow-button hover:brightness-[1.06] active:brightness-95',
-        success: 'bg-live text-brand-ink shadow-button hover:brightness-[1.06] active:brightness-95',
+        destructive:
+          'bg-negative text-white shadow-button hover:brightness-[1.06] active:brightness-95',
+        success:
+          'bg-live text-brand-ink shadow-button hover:brightness-[1.06] active:brightness-95',
       },
       size: {
         default: 'h-11 px-5 text-sm',
@@ -35,8 +38,7 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {}
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {}
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, ...props }, ref) => (

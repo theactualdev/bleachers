@@ -3,13 +3,7 @@
 import { use } from 'react';
 import { AuthGate } from '@/components/auth-gate';
 import { PageHeader } from '@/components/page-header';
-import {
-  useAddToRoster,
-  usePlayers,
-  useRoster,
-  useTeamMemberships,
-  useTeams,
-} from '@/lib/hooks';
+import { useAddToRoster, usePlayers, useRoster, useTeamMemberships, useTeams } from '@/lib/hooks';
 import { Card } from '@/components/ui/card';
 import { Select, type SelectOption } from '@/components/ui/select';
 import { EmptyState, Skeleton } from '@/components/ui/misc';
@@ -59,7 +53,9 @@ function TeamProfile({ id }: { id: string }) {
           value=""
           options={options}
           placeholder="Add player to roster…"
-          emptyLabel={players && players.length ? 'Everyone is already on this team' : 'No players yet'}
+          emptyLabel={
+            players && players.length ? 'Everyone is already on this team' : 'No players yet'
+          }
           aria-label="Add player to roster"
           onChange={onAdd}
         />
