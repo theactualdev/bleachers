@@ -20,7 +20,7 @@ Supported sports (via configuration, no code): **Football**, **Basketball**, **V
 
 ```
 apps/
-  api/            NestJS + Prisma + Postgres — event-sourced REST API, WebSockets, Better Auth
+  api/            NestJS + Prisma + Postgres — event-sourced REST API, WebSockets, Supabase Auth
   web/            Next.js (App Router) PWA — dashboard, live scoring, offline, public pages
 packages/
   types/          Shared domain types + Zod schemas (contract source of truth)
@@ -32,23 +32,13 @@ docs/             Architecture decision records & assumptions
 
 ## Quick start
 
-```bash
-# 1. Install
-pnpm install
+1. `pnpm install`
+2. Create a Supabase project and populate `apps/api/.env` and `apps/web/.env` (see `.env.example` and `apps/web/.env.example`).
+3. `pnpm db:migrate` — apply schema to Supabase
+4. `pnpm db:seed` — demo teams, players, a live match (owned by the seed user)
+5. `pnpm dev` — api on :4000, web on :3000
 
-# 2. Environment
-cp .env.example .env            # then edit secrets as needed
-
-# 3. Database (Postgres via Docker)
-pnpm db:up
-pnpm db:migrate
-pnpm db:seed                    # demo teams, players, a sample match
-
-# 4. Run everything (api on :4000, web on :3000)
-pnpm dev
-```
-
-Open http://localhost:3000. The PWA is installable and works offline once loaded.
+Sign in at http://localhost:3000 with a magic link (emailed via the SMTP you configured in Supabase). `docker-compose.yml` remains as an optional local-Postgres fallback (`pnpm db:up`).
 
 ## Common scripts
 

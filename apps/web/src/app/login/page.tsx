@@ -98,7 +98,7 @@ export default function LoginPage() {
                 Continue with Google
               </Button>
               <p className="text-ink-3 text-center text-[11px]">
-                Google sign-in requires OAuth credentials in the API env.
+                Google sign-in must be enabled in Supabase Auth.
               </p>
             </form>
           )}

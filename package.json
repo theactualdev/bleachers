@@ -18,9 +18,10 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
-    "db:migrate": "pnpm --filter @bleachers/api prisma:migrate",
-    "db:generate": "pnpm --filter @bleachers/api prisma:generate",
-    "db:seed": "pnpm --filter @bleachers/api prisma:seed"
+    "db:migrate": "pnpm --filter @bleachers/api exec prisma migrate deploy",
+    "db:migrate:dev": "pnpm --filter @bleachers/api exec prisma migrate dev",
+    "db:generate": "pnpm --filter @bleachers/api exec prisma generate",
+    "db:seed": "pnpm --filter @bleachers/api exec prisma db seed"
   },
   "devDependencies": {
     "prettier": "^3.4.2",

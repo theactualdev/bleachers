@@ -1,3 +1,4 @@
+# Optional local-Postgres fallback. Day-to-day dev uses hosted Supabase; see README.
 services:
   db:
     image: postgres:16-alpine
