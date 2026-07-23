@@ -1,3 +1,5 @@
+import { supabase } from './supabase';
+
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 export class ApiError extends Error {
@@ -12,15 +14,18 @@ export class ApiError extends Error {
 }
 
 /**
- * Thin fetch wrapper. Always sends cookies (Better Auth session) and JSON. Throws ApiError on
- * non-2xx so TanStack Query can surface errors uniformly.
+ * Thin fetch wrapper. Attaches the Supabase access token as a Bearer header and JSON.
+ * Throws ApiError on non-2xx so TanStack Query can surface errors uniformly.
  */
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
-    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init.headers ?? {}),
     },
   });
