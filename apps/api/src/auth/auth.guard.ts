@@ -6,19 +6,19 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { fromNodeHeaders } from 'better-auth/node';
-import { AUTH, type Auth } from './auth.instance.js';
 import { IS_PUBLIC_KEY } from './auth.decorators.js';
+import { JWT_VERIFIER } from './auth.tokens.js';
+import type { JwtVerifier } from './supabase-jwt.js';
 
 /**
- * Global guard. Resolves the Better Auth session from request headers/cookies and attaches the
- * user to the request. Routes marked `@Public()` bypass it.
+ * Global guard. Verifies the Supabase access token from the Authorization: Bearer
+ * header and attaches the user to the request. Routes marked `@Public()` bypass it.
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    @Inject(AUTH) private readonly auth: Auth,
+    @Inject(JWT_VERIFIER) private readonly verifier: JwtVerifier,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -29,22 +29,15 @@ export class AuthGuard implements CanActivate {
     if (isPublic) return true;
 
     const request = context.switchToHttp().getRequest();
-    const session = await this.auth.api.getSession({
-      headers: fromNodeHeaders(request.headers),
-    });
+    const header: string = request.headers['authorization'] ?? '';
+    const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+    if (!token) throw new UnauthorizedException('Authentication required');
 
-    if (!session?.user) {
-      throw new UnauthorizedException('Authentication required');
+    try {
+      request.user = await this.verifier.verify(token);
+      return true;
+    } catch {
+      throw new UnauthorizedException('Invalid or expired token');
     }
-
-    request.user = {
-      id: session.user.id,
-      email: session.user.email,
-      name: session.user.name ?? null,
-      image: session.user.image ?? null,
-      emailVerified: session.user.emailVerified,
-    };
-    request.session = session.session;
-    return true;
   }
 }
