@@ -10,8 +10,6 @@ export interface AppEnv {
     jwksUrl: string;
     issuer: string;
     serviceRoleKey: string;
-    /** Only set when the project still uses the legacy HS256 shared secret. */
-    jwtSecret: string | null;
   };
 }
 
@@ -31,7 +29,6 @@ export function loadEnv(): AppEnv {
       jwksUrl: `${supabaseUrl}/auth/v1/.well-known/jwks.json`,
       issuer: `${supabaseUrl}/auth/v1`,
       serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
-      jwtSecret: process.env.SUPABASE_JWT_SECRET ?? null,
     },
   };
 }
