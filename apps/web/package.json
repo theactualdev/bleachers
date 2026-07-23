@@ -15,8 +15,8 @@
   "dependencies": {
     "@bleachers/sport-engine": "workspace:*",
     "@bleachers/types": "workspace:*",
+    "@supabase/supabase-js": "2.110.8",
     "@tanstack/react-query": "^5.64.1",
-    "better-auth": "^1.2.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^11.18.0",
