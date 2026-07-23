@@ -4,25 +4,37 @@
  */
 import { randomUUID } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
+import { createClient } from '@supabase/supabase-js';
 
 const prisma = new PrismaClient();
 
-const DEMO_USER_ID = 'demo-user';
+const admin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
+
+const SEED_EMAIL = process.env.SEED_USER_EMAIL ?? 'olayinkacodes@gmail.com';
+
+/** Create-or-find the seed auth user; the DB trigger creates its profile row. */
+async function ensureSeedUser(): Promise<string> {
+  const { data: list, error: listErr } = await admin.auth.admin.listUsers();
+  if (listErr) throw listErr;
+  const existing = list.users.find((u) => u.email === SEED_EMAIL);
+  if (existing) return existing.id;
+  const { data, error } = await admin.auth.admin.createUser({
+    email: SEED_EMAIL,
+    email_confirm: true,
+    user_metadata: { name: 'Demo' },
+  });
+  if (error) throw error;
+  return data.user.id;
+}
+
 const HOME_TEAM_ID = '10000000-0000-4000-8000-000000000001';
 const AWAY_TEAM_ID = '10000000-0000-4000-8000-000000000002';
 const MATCH_ID = '20000000-0000-4000-8000-000000000001';
 
 async function main(): Promise<void> {
-  await prisma.user.upsert({
-    where: { id: DEMO_USER_ID },
-    update: {},
-    create: {
-      id: DEMO_USER_ID,
-      name: 'Demo Owner',
-      email: 'demo@bleachers.app',
-      emailVerified: true,
-    },
-  });
+  const userId = await ensureSeedUser();
 
   const homePlayers = ['Ada Kwei', 'Bola Nnamdi', 'Chidi Okoro', 'Deji Ade', 'Emeka Obi'];
   const awayPlayers = ['Femi Bello', 'Gozie Eze', 'Hakeem Musa', 'Ike Uzo', 'Jide Kolo'];
@@ -38,7 +50,7 @@ async function main(): Promise<void> {
       name: 'Harbour FC',
       colors: { primary: '#1E90FF', secondary: '#FFFFFF' },
       sport: 'FOOTBALL',
-      createdById: DEMO_USER_ID,
+      createdById: userId,
     },
   });
   await prisma.team.upsert({
@@ -49,7 +61,7 @@ async function main(): Promise<void> {
       name: 'Union Athletic',
       colors: { primary: '#E23B3B', secondary: '#111111' },
       sport: 'FOOTBALL',
-      createdById: DEMO_USER_ID,
+      createdById: userId,
     },
   });
 
@@ -58,7 +70,7 @@ async function main(): Promise<void> {
       await prisma.player.upsert({
         where: { id: ids[i]! },
         update: {},
-        create: { id: ids[i]!, name: names[i]!, createdById: DEMO_USER_ID },
+        create: { id: ids[i]!, name: names[i]!, createdById: userId },
       });
       await prisma.rosterEntry.upsert({
         where: { teamId_playerId: { teamId, playerId: ids[i]! } },
@@ -82,7 +94,7 @@ async function main(): Promise<void> {
       scheduledAt: new Date(),
       status: 'LIVE',
       statTier: 'BASIC',
-      createdById: DEMO_USER_ID,
+      createdById: userId,
       lineups: {
         create: [
           ...homeIds.map((playerId, i) => ({
@@ -115,7 +127,7 @@ async function main(): Promise<void> {
           playerId: homeIds[0]!,
           period: 1,
           clockMs: 12 * 60000,
-          recordedById: DEMO_USER_ID,
+          recordedById: userId,
         },
         {
           id: randomUUID(),
@@ -125,7 +137,7 @@ async function main(): Promise<void> {
           playerId: homeIds[1]!,
           period: 1,
           clockMs: 12 * 60000,
-          recordedById: DEMO_USER_ID,
+          recordedById: userId,
         },
         {
           id: randomUUID(),
@@ -135,7 +147,7 @@ async function main(): Promise<void> {
           playerId: awayIds[2]!,
           period: 2,
           clockMs: 58 * 60000,
-          recordedById: DEMO_USER_ID,
+          recordedById: userId,
         },
       ],
     });

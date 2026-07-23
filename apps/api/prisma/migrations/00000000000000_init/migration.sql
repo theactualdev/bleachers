@@ -23,61 +23,15 @@ CREATE TYPE "PermissionScope" AS ENUM ('TEAM', 'COMPETITION', 'MATCH');
 CREATE TYPE "CompetitionFormat" AS ENUM ('KNOCKOUT', 'ROUND_ROBIN', 'GROUPS', 'LADDER', 'COLLECTION');
 
 -- CreateTable
-CREATE TABLE "user" (
-    "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL DEFAULT '',
+CREATE TABLE "profiles" (
+    "id" UUID NOT NULL,
     "email" TEXT NOT NULL,
-    "emailVerified" BOOLEAN NOT NULL DEFAULT false,
+    "name" TEXT NOT NULL DEFAULT '',
     "image" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "user_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "session" (
-    "id" TEXT NOT NULL,
-    "expiresAt" TIMESTAMP(3) NOT NULL,
-    "token" TEXT NOT NULL,
-    "ipAddress" TEXT,
-    "userAgent" TEXT,
-    "userId" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "session_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "account" (
-    "id" TEXT NOT NULL,
-    "accountId" TEXT NOT NULL,
-    "providerId" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "accessToken" TEXT,
-    "refreshToken" TEXT,
-    "idToken" TEXT,
-    "accessTokenExpiresAt" TIMESTAMP(3),
-    "refreshTokenExpiresAt" TIMESTAMP(3),
-    "scope" TEXT,
-    "password" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "account_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "verification" (
-    "id" TEXT NOT NULL,
-    "identifier" TEXT NOT NULL,
-    "value" TEXT NOT NULL,
-    "expiresAt" TIMESTAMP(3) NOT NULL,
-    "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3),
-
-    CONSTRAINT "verification_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "profiles_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -86,7 +40,7 @@ CREATE TABLE "player" (
     "name" TEXT NOT NULL,
     "dateOfBirth" TEXT,
     "photo" TEXT,
-    "createdById" TEXT NOT NULL,
+    "createdById" UUID NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -101,7 +55,7 @@ CREATE TABLE "team" (
     "logo" TEXT,
     "sport" "Sport" NOT NULL,
     "isAdHoc" BOOLEAN NOT NULL DEFAULT false,
-    "createdById" TEXT NOT NULL,
+    "createdById" UUID NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -125,7 +79,7 @@ CREATE TABLE "competition" (
     "name" TEXT NOT NULL,
     "sport" "Sport" NOT NULL,
     "format" "CompetitionFormat" NOT NULL,
-    "createdById" TEXT NOT NULL,
+    "createdById" UUID NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -143,7 +97,7 @@ CREATE TABLE "match" (
     "status" "MatchStatus" NOT NULL DEFAULT 'SCHEDULED',
     "statTier" "StatTier" NOT NULL DEFAULT 'BASIC',
     "competitionId" UUID,
-    "createdById" TEXT NOT NULL,
+    "createdById" UUID NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -174,10 +128,10 @@ CREATE TABLE "event" (
     "clockMs" INTEGER NOT NULL DEFAULT 0,
     "metadata" JSONB NOT NULL DEFAULT '{}',
     "voided" BOOLEAN NOT NULL DEFAULT false,
-    "voidedById" TEXT,
+    "voidedById" UUID,
     "voidedAt" TIMESTAMP(3),
     "replacesEventId" UUID,
-    "recordedById" TEXT NOT NULL,
+    "recordedById" UUID NOT NULL,
     "recordedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "event_pkey" PRIMARY KEY ("id")
@@ -186,7 +140,7 @@ CREATE TABLE "event" (
 -- CreateTable
 CREATE TABLE "permission_grant" (
     "id" UUID NOT NULL,
-    "userId" TEXT NOT NULL,
+    "userId" UUID NOT NULL,
     "role" "Role" NOT NULL,
     "scope" "PermissionScope" NOT NULL,
     "resourceId" UUID NOT NULL,
@@ -196,10 +150,7 @@ CREATE TABLE "permission_grant" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "user_email_key" ON "user"("email");
-
--- CreateIndex
-CREATE UNIQUE INDEX "session_token_key" ON "session"("token");
+CREATE UNIQUE INDEX "profiles_email_key" ON "profiles"("email");
 
 -- CreateIndex
 CREATE INDEX "player_createdById_idx" ON "player"("createdById");
@@ -238,16 +189,10 @@ CREATE INDEX "permission_grant_scope_resourceId_idx" ON "permission_grant"("scop
 CREATE UNIQUE INDEX "permission_grant_userId_scope_resourceId_key" ON "permission_grant"("userId", "scope", "resourceId");
 
 -- AddForeignKey
-ALTER TABLE "session" ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "player" ADD CONSTRAINT "player_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "profiles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "account" ADD CONSTRAINT "account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "player" ADD CONSTRAINT "player_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "team" ADD CONSTRAINT "team_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "team" ADD CONSTRAINT "team_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "profiles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "roster_entry" ADD CONSTRAINT "roster_entry_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "team"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -256,7 +201,7 @@ ALTER TABLE "roster_entry" ADD CONSTRAINT "roster_entry_teamId_fkey" FOREIGN KEY
 ALTER TABLE "roster_entry" ADD CONSTRAINT "roster_entry_playerId_fkey" FOREIGN KEY ("playerId") REFERENCES "player"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "competition" ADD CONSTRAINT "competition_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "competition" ADD CONSTRAINT "competition_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "profiles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "match" ADD CONSTRAINT "match_homeTeamId_fkey" FOREIGN KEY ("homeTeamId") REFERENCES "team"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -268,7 +213,7 @@ ALTER TABLE "match" ADD CONSTRAINT "match_awayTeamId_fkey" FOREIGN KEY ("awayTea
 ALTER TABLE "match" ADD CONSTRAINT "match_competitionId_fkey" FOREIGN KEY ("competitionId") REFERENCES "competition"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "match" ADD CONSTRAINT "match_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "match" ADD CONSTRAINT "match_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "profiles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "match_lineup" ADD CONSTRAINT "match_lineup_matchId_fkey" FOREIGN KEY ("matchId") REFERENCES "match"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -283,14 +228,14 @@ ALTER TABLE "event" ADD CONSTRAINT "event_matchId_fkey" FOREIGN KEY ("matchId") 
 ALTER TABLE "event" ADD CONSTRAINT "event_playerId_fkey" FOREIGN KEY ("playerId") REFERENCES "player"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "event" ADD CONSTRAINT "event_voidedById_fkey" FOREIGN KEY ("voidedById") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "event" ADD CONSTRAINT "event_voidedById_fkey" FOREIGN KEY ("voidedById") REFERENCES "profiles"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "event" ADD CONSTRAINT "event_replacesEventId_fkey" FOREIGN KEY ("replacesEventId") REFERENCES "event"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "event" ADD CONSTRAINT "event_recordedById_fkey" FOREIGN KEY ("recordedById") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "event" ADD CONSTRAINT "event_recordedById_fkey" FOREIGN KEY ("recordedById") REFERENCES "profiles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "permission_grant" ADD CONSTRAINT "permission_grant_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "permission_grant" ADD CONSTRAINT "permission_grant_userId_fkey" FOREIGN KEY ("userId") REFERENCES "profiles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

@@ -7,25 +7,22 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Better Auth (core schema). Managed by Better Auth; domain rows FK to User.
+// Profile — keyed by the Supabase auth.users UUID. A DB trigger creates the row.
 // ─────────────────────────────────────────────────────────────────────────────
 
-model User {
-  id            String   @id
-  name          String   @default("")
-  email         String   @unique
-  emailVerified Boolean  @default(false)
-  image         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  sessions Session[]
-  accounts Account[]
+model Profile {
+  id        String   @id @db.Uuid
+  email     String   @unique
+  name      String   @default("")
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Domain back-references (ownership / audit).
   createdPlayers      Player[]          @relation("PlayerCreatedBy")
@@ -36,51 +33,7 @@ model User {
   permissionGrants    PermissionGrant[]
   createdCompetitions Competition[]     @relation("CompetitionCreatedBy")
 
-  @@map("user")
-}
-
-model Session {
-  id        String   @id
-  expiresAt DateTime
-  token     String   @unique
-  ipAddress String?
-  userAgent String?
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("session")
-}
-
-model Account {
-  id                    String    @id
-  accountId             String
-  providerId            String
-  userId                String
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accessToken           String?
-  refreshToken          String?
-  idToken               String?
-  accessTokenExpiresAt  DateTime?
-  refreshTokenExpiresAt DateTime?
-  scope                 String?
-  password              String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  @@map("account")
-}
-
-model Verification {
-  id         String    @id
-  identifier String
-  value      String
-  expiresAt  DateTime
-  createdAt  DateTime? @default(now())
-  updatedAt  DateTime? @updatedAt
-
-  @@map("verification")
+  @@map("profiles")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -140,8 +93,8 @@ model Player {
   name        String
   dateOfBirth String? // YYYY-MM-DD
   photo       String?
-  createdById String
-  createdBy   User     @relation("PlayerCreatedBy", fields: [createdById], references: [id])
+  createdById String   @db.Uuid
+  createdBy   Profile  @relation("PlayerCreatedBy", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -161,8 +114,8 @@ model Team {
   logo        String?
   sport       Sport
   isAdHoc     Boolean  @default(false)
-  createdById String
-  createdBy   User     @relation("TeamCreatedBy", fields: [createdById], references: [id])
+  createdById String   @db.Uuid
+  createdBy   Profile  @relation("TeamCreatedBy", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -193,8 +146,8 @@ model Competition {
   name        String
   sport       Sport
   format      CompetitionFormat
-  createdById String
-  createdBy   User              @relation("CompetitionCreatedBy", fields: [createdById], references: [id])
+  createdById String            @db.Uuid
+  createdBy   Profile           @relation("CompetitionCreatedBy", fields: [createdById], references: [id])
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
@@ -216,8 +169,8 @@ model Match {
   statTier      StatTier     @default(BASIC)
   competitionId String?      @db.Uuid
   competition   Competition? @relation(fields: [competitionId], references: [id], onDelete: SetNull)
-  createdById   String
-  createdBy     User         @relation("MatchCreatedBy", fields: [createdById], references: [id])
+  createdById   String       @db.Uuid
+  createdBy     Profile      @relation("MatchCreatedBy", fields: [createdById], references: [id])
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
@@ -258,14 +211,14 @@ model Event {
   clockMs         Int       @default(0)
   metadata        Json      @default("{}")
   voided          Boolean   @default(false)
-  voidedById      String?
-  voidedBy        User?     @relation("EventVoidedBy", fields: [voidedById], references: [id])
+  voidedById      String?   @db.Uuid
+  voidedBy        Profile?  @relation("EventVoidedBy", fields: [voidedById], references: [id])
   voidedAt        DateTime?
   replacesEventId String?   @db.Uuid
   replaces        Event?    @relation("EventReplacement", fields: [replacesEventId], references: [id])
   replacedBy      Event[]   @relation("EventReplacement")
-  recordedById    String
-  recordedBy      User      @relation("EventRecordedBy", fields: [recordedById], references: [id])
+  recordedById    String    @db.Uuid
+  recordedBy      Profile   @relation("EventRecordedBy", fields: [recordedById], references: [id])
   recordedAt      DateTime  @default(now())
 
   @@index([matchId, voided])
@@ -275,8 +228,8 @@ model Event {
 
 model PermissionGrant {
   id         String          @id @default(uuid()) @db.Uuid
-  userId     String
-  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String          @db.Uuid
+  user       Profile         @relation(fields: [userId], references: [id], onDelete: Cascade)
   role       Role
   scope      PermissionScope
   resourceId String          @db.Uuid
