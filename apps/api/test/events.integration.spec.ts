@@ -70,12 +70,21 @@ describe('Events + Statistics (integration)', () => {
   });
 
   afterAll(async () => {
-    await prisma.event.deleteMany({ where: { matchId } });
-    await prisma.matchLineup.deleteMany({ where: { matchId } });
-    await prisma.permissionGrant.deleteMany({ where: { userId } });
-    await prisma.match.deleteMany({ where: { id: matchId } });
-    await prisma.team.deleteMany({ where: { id: { in: [homeTeamId, awayTeamId] } } });
-    await prisma.player.deleteMany({ where: { id: { in: [p1, p2] } } });
+    // If beforeAll failed before creating anything, skip cleanup of never-created rows.
+    if (matchId) {
+      await prisma.event.deleteMany({ where: { matchId } });
+      await prisma.matchLineup.deleteMany({ where: { matchId } });
+      await prisma.match.deleteMany({ where: { id: matchId } });
+    }
+    if (userId) await prisma.permissionGrant.deleteMany({ where: { userId } });
+    if (homeTeamId || awayTeamId) {
+      await prisma.team.deleteMany({
+        where: { id: { in: [homeTeamId, awayTeamId].filter(Boolean) } },
+      });
+    }
+    if (p1 || p2) {
+      await prisma.player.deleteMany({ where: { id: { in: [p1, p2].filter(Boolean) } } });
+    }
     await prisma.$disconnect();
     await deleteTestUser(userId);
   });

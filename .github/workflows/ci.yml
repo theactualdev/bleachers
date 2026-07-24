@@ -1,5 +1,14 @@
 name: CI
 
+# Runs against the hosted Supabase dev project. Required repository secrets:
+#   DATABASE_URL / DIRECT_URL      — Supabase session-pooler connection strings
+#   SUPABASE_URL                   — https://<ref>.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY      — sb_secret_... (admin API: migrations aside, used by seed/tests)
+#   NEXT_PUBLIC_SUPABASE_URL       — same project URL (web build/runtime)
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY  — sb_publishable_... (web build/runtime)
+# Integration tests create and delete their own auth users and domain rows, so
+# runs are safe against the shared dev database.
+
 on:
   push:
     branches: [main]
@@ -10,29 +19,19 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+  DIRECT_URL: ${{ secrets.DIRECT_URL }}
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+  NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+  NEXT_PUBLIC_API_URL: http://localhost:4000
+  WEB_ORIGIN: http://localhost:3000
+
 jobs:
   build-test:
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: bleachers
-          POSTGRES_PASSWORD: bleachers
-          POSTGRES_DB: bleachers_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U bleachers"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-
-    env:
-      DATABASE_URL: postgresql://bleachers:bleachers@localhost:5432/bleachers_test?schema=public
-      BETTER_AUTH_SECRET: ci-secret-not-for-production
-      BETTER_AUTH_URL: http://localhost:4000
 
     steps:
       - uses: actions/checkout@v4
@@ -51,6 +50,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm --filter @bleachers/api prisma:generate
+      # Applies any pending migrations to the shared dev database (no-op when in sync).
       - run: pnpm --filter @bleachers/api prisma:deploy
       - run: pnpm test
       - run: pnpm build
@@ -58,15 +58,40 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     needs: build-test
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: 9
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
+
+      # Build the workspace packages and the API, then seed demo data (idempotent).
+      - run: pnpm --filter @bleachers/types build
+      - run: pnpm --filter @bleachers/sport-engine build
+      - run: pnpm --filter @bleachers/api prisma:generate
+      - run: pnpm --filter @bleachers/api build
+      - run: pnpm db:seed
+
+      # Start the API in the background and wait for /health before running Playwright
+      # (Playwright starts the web dev server itself via its webServer config).
+      - name: Start API
+        run: |
+          node apps/api/dist/main.js &
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4000/health > /dev/null; then
+              echo "API is up"; exit 0
+            fi
+            sleep 2
+          done
+          echo "API failed to start" >&2; exit 1
+
       - run: pnpm test:e2e

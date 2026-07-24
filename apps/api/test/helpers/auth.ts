@@ -6,14 +6,39 @@ const admin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVI
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
+/**
+ * The hosted auth admin API can return transient errors — including sustained ~50%
+ * failure when one auth replica has a stale key cache after signing-key changes
+ * (observed live: "unrecognized JWT kid <nil> for algorithm ES256"). Retry with
+ * backoff + jitter so integration runs stay stable while the platform misbehaves.
+ */
+async function withRetry<T>(fn: () => Promise<T>, attempts = 6): Promise<T> {
+  let lastError: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastError = e;
+      await new Promise((r) => setTimeout(r, 300 * (i + 1) + Math.random() * 300));
+    }
+  }
+  throw lastError;
+}
+
 /** Creates a confirmed Supabase auth user; the DB trigger creates its profile. */
 export async function createTestUser(): Promise<string> {
-  const email = `test-${randomUUID()}@bleachers.test`;
-  const { data, error } = await admin.auth.admin.createUser({ email, email_confirm: true });
-  if (error) throw error;
-  return data.user.id;
+  return withRetry(async () => {
+    const email = `test-${randomUUID()}@bleachers.test`;
+    const { data, error } = await admin.auth.admin.createUser({ email, email_confirm: true });
+    if (error) throw error;
+    return data.user.id;
+  });
 }
 
 export async function deleteTestUser(id: string): Promise<void> {
-  await admin.auth.admin.deleteUser(id);
+  if (!id) return;
+  await withRetry(async () => {
+    const { error } = await admin.auth.admin.deleteUser(id);
+    if (error) throw error;
+  });
 }

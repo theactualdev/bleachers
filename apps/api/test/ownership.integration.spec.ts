@@ -58,11 +58,17 @@ describe('Ownership enforcement on mutations (integration)', () => {
   });
 
   afterAll(async () => {
-    await prisma.permissionGrant.deleteMany({ where: { resourceId: matchId } });
-    await prisma.match.deleteMany({ where: { id: matchId } });
-    await prisma.rosterEntry.deleteMany({ where: { teamId: { in: [homeTeamId, awayTeamId] } } });
-    await prisma.player.deleteMany({ where: { id: playerId } });
-    await prisma.team.deleteMany({ where: { id: { in: [homeTeamId, awayTeamId] } } });
+    // If beforeAll failed before creating anything, skip cleanup of never-created rows.
+    if (matchId) {
+      await prisma.permissionGrant.deleteMany({ where: { resourceId: matchId } });
+      await prisma.match.deleteMany({ where: { id: matchId } });
+    }
+    if (homeTeamId || awayTeamId) {
+      const teamIds = [homeTeamId, awayTeamId].filter(Boolean);
+      await prisma.rosterEntry.deleteMany({ where: { teamId: { in: teamIds } } });
+      await prisma.team.deleteMany({ where: { id: { in: teamIds } } });
+    }
+    if (playerId) await prisma.player.deleteMany({ where: { id: playerId } });
     await prisma.$disconnect();
     await deleteTestUser(ownerId);
     await deleteTestUser(intruderId);
