@@ -34,9 +34,10 @@ export class PlayersController {
 
   @Patch(':id')
   update(
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body(new ZodValidationPipe(UpdatePlayerSchema)) body: UpdatePlayerInput,
   ) {
-    return this.players.update(id, body);
+    return this.players.update(user.id, id, body);
   }
 }

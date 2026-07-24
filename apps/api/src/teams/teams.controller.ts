@@ -36,10 +36,11 @@ export class TeamsController {
 
   @Patch(':id')
   update(
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body(new ZodValidationPipe(UpdateTeamSchema)) body: UpdateTeamInput,
   ) {
-    return this.teams.update(id, body);
+    return this.teams.update(user.id, id, body);
   }
 
   @Get(':id/roster')
@@ -49,17 +50,19 @@ export class TeamsController {
 
   @Post(':id/roster')
   addToRoster(
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body(new ZodValidationPipe(AddRosterEntrySchema)) body: AddRosterEntryInput,
   ) {
-    return this.teams.addToRoster(id, body);
+    return this.teams.addToRoster(user.id, id, body);
   }
 
   @Delete(':id/roster/:playerId')
   removeFromRoster(
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('playerId', ParseUUIDPipe) playerId: string,
   ) {
-    return this.teams.removeFromRoster(id, playerId);
+    return this.teams.removeFromRoster(user.id, id, playerId);
   }
 }

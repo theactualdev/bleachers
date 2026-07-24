@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { CreateMatchInput, UpdateMatchInput } from '@bleachers/types';
 import { hasSportConfig } from '@bleachers/sport-engine';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -7,6 +12,20 @@ import { toLineup, toMatch, toTeam } from '../common/serialize.js';
 @Injectable()
 export class MatchesService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /** Ownership guard for mutations: the creator or an OWNER grant on the match. */
+  private async assertOwner(userId: string, matchId: string): Promise<void> {
+    const match = await this.prisma.match.findUnique({
+      where: { id: matchId },
+      select: { createdById: true },
+    });
+    if (!match) throw new NotFoundException('Match not found');
+    if (match.createdById === userId) return;
+    const grant = await this.prisma.permissionGrant.findFirst({
+      where: { userId, resourceId: matchId, scope: 'MATCH', role: 'OWNER' },
+    });
+    if (!grant) throw new ForbiddenException('You do not have permission to modify this match');
+  }
 
   async list(userId: string) {
     const matches = await this.prisma.match.findMany({
@@ -99,8 +118,8 @@ export class MatchesService {
     return this.get(match.id);
   }
 
-  async update(id: string, input: UpdateMatchInput) {
-    await this.get(id);
+  async update(userId: string, id: string, input: UpdateMatchInput) {
+    await this.assertOwner(userId, id);
     const match = await this.prisma.match.update({
       where: { id },
       data: {
@@ -115,8 +134,12 @@ export class MatchesService {
   }
 
   /** Convenience transitions used by the live-scoring screen. */
-  async setStatus(id: string, status: 'LIVE' | 'PAUSED' | 'COMPLETED' | 'ABANDONED') {
-    await this.get(id);
+  async setStatus(
+    userId: string,
+    id: string,
+    status: 'LIVE' | 'PAUSED' | 'COMPLETED' | 'ABANDONED',
+  ) {
+    await this.assertOwner(userId, id);
     const match = await this.prisma.match.update({ where: { id }, data: { status } });
     return toMatch(match);
   }

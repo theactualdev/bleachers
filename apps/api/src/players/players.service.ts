@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type { CreatePlayerInput, UpdatePlayerInput } from '@bleachers/types';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { toPlayer } from '../common/serialize.js';
@@ -33,8 +33,12 @@ export class PlayersService {
     return toPlayer(player);
   }
 
-  async update(id: string, input: UpdatePlayerInput) {
-    await this.get(id);
+  async update(userId: string, id: string, input: UpdatePlayerInput) {
+    const existing = await this.prisma.player.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Player not found');
+    if (existing.createdById !== userId) {
+      throw new ForbiddenException('You do not have permission to modify this player');
+    }
     const player = await this.prisma.player.update({
       where: { id },
       data: {

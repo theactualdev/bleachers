@@ -34,9 +34,10 @@ export class MatchesController {
 
   @Patch(':id')
   update(
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body(new ZodValidationPipe(UpdateMatchSchema)) body: UpdateMatchInput,
   ) {
-    return this.matches.update(id, body);
+    return this.matches.update(user.id, id, body);
   }
 }

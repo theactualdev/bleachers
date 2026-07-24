@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type { AddRosterEntryInput, CreateTeamInput, UpdateTeamInput } from '@bleachers/types';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -7,6 +7,18 @@ import { toPlayer, toRosterEntry, toTeam } from '../common/serialize.js';
 @Injectable()
 export class TeamsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /** Ownership guard for mutations: only the team's creator may modify it or its roster. */
+  private async assertOwner(userId: string, teamId: string): Promise<void> {
+    const team = await this.prisma.team.findUnique({
+      where: { id: teamId },
+      select: { createdById: true },
+    });
+    if (!team) throw new NotFoundException('Team not found');
+    if (team.createdById !== userId) {
+      throw new ForbiddenException('You do not have permission to modify this team');
+    }
+  }
 
   async list(userId: string) {
     const teams = await this.prisma.team.findMany({
@@ -36,8 +48,8 @@ export class TeamsService {
     return toTeam(team);
   }
 
-  async update(id: string, input: UpdateTeamInput) {
-    await this.get(id);
+  async update(userId: string, id: string, input: UpdateTeamInput) {
+    await this.assertOwner(userId, id);
     const team = await this.prisma.team.update({
       where: { id },
       data: {
@@ -66,8 +78,8 @@ export class TeamsService {
     }));
   }
 
-  async addToRoster(teamId: string, input: AddRosterEntryInput) {
-    await this.get(teamId);
+  async addToRoster(userId: string, teamId: string, input: AddRosterEntryInput) {
+    await this.assertOwner(userId, teamId);
     const entry = await this.prisma.rosterEntry.upsert({
       where: { teamId_playerId: { teamId, playerId: input.playerId } },
       create: {
@@ -81,7 +93,8 @@ export class TeamsService {
     return { ...toRosterEntry(entry), player: toPlayer(entry.player) };
   }
 
-  async removeFromRoster(teamId: string, playerId: string) {
+  async removeFromRoster(userId: string, teamId: string, playerId: string) {
+    await this.assertOwner(userId, teamId);
     await this.prisma.rosterEntry.deleteMany({ where: { teamId, playerId } });
     return { removed: true };
   }
