@@ -44,10 +44,11 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+      # Generated Prisma client types are required by lint/typecheck of the API.
+      - run: pnpm --filter @bleachers/api prisma:generate
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm --filter @bleachers/api prisma:generate
       # Applies any pending migrations to the shared dev database (no-op when in sync).
       - run: pnpm --filter @bleachers/api prisma:deploy
       - run: pnpm test
