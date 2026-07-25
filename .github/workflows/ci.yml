@@ -69,7 +69,7 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm --filter @bleachers/web exec playwright install --with-deps chromium
 
       # Build the workspace packages and the API, then seed demo data (idempotent).
       - run: pnpm --filter @bleachers/types build
