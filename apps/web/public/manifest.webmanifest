@@ -4,8 +4,8 @@
   "description": "Record live grassroots sports statistics from your phone.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0b1220",
-  "theme_color": "#0b1220",
+  "background_color": "#0c0a08",
+  "theme_color": "#0c0a08",
   "orientation": "portrait-primary",
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
