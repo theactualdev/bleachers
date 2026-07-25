@@ -21,9 +21,11 @@ export function loadEnv(): AppEnv {
     port: Number(process.env.API_PORT ?? process.env.PORT ?? '4000'),
     databaseUrl: process.env.DATABASE_URL ?? '',
     directUrl: process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? '',
+    // Browsers never send a trailing slash in the Origin header — strip any from
+    // config so a pasted URL like "https://app.example.com/" still matches.
     webOrigins: (process.env.WEB_ORIGIN ?? 'http://localhost:3000')
       .split(',')
-      .map((s) => s.trim())
+      .map((s) => s.trim().replace(/\/+$/, ''))
       .filter(Boolean),
     supabase: {
       url: supabaseUrl,
