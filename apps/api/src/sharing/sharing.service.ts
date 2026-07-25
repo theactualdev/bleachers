@@ -78,7 +78,13 @@ export class SharingService {
   }
 }
 
-function csvCell(value: string): string {
-  if (/[",\r\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
-  return value;
+/**
+ * Escape one CSV cell. Beyond RFC-4180 quoting, cells starting with =, +, -, @,
+ * or a tab/CR are prefixed with a single quote so user-controlled values (player
+ * names) can never execute as formulas when the export opens in Excel/Sheets.
+ */
+export function csvCell(value: string): string {
+  const neutralized = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  if (/[",\r\n]/.test(neutralized)) return `"${neutralized.replace(/"/g, '""')}"`;
+  return neutralized;
 }
