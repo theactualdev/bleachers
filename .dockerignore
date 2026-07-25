@@ -1,0 +1,14 @@
+# Never bake local installs, builds, or secrets into images.
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+.git
+.superpowers
+.claude
+**/.env
+**/.env.*
+!**/.env.example
+coverage
+playwright-report
+test-results
