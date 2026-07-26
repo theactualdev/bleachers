@@ -22,7 +22,7 @@ export class SharingService {
     });
     if (!match) throw new NotFoundException('Match not found');
 
-    const stats = await this.stats.matchStats(matchId);
+    const stats = await this.stats.matchStatsCore(matchId);
     const playerNames = Object.fromEntries(match.lineups.map((l) => [l.playerId, l.player.name]));
 
     return {
@@ -70,7 +70,7 @@ export class SharingService {
   async publicPlayer(playerId: string) {
     const player = await this.prisma.player.findUnique({ where: { id: playerId } });
     if (!player) throw new NotFoundException('Player not found');
-    const career = await this.stats.playerCareer(playerId);
+    const career = await this.stats.playerCareerCore(playerId);
     return {
       player: { id: player.id, name: player.name, photo: player.photo },
       career,

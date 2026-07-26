@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import type {
   BatchUploadInput,
   BatchUploadResult,
@@ -13,6 +8,7 @@ import type {
 import { getSportConfig, isEventTypeAllowed } from '@bleachers/sport-engine';
 import type { Match, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { MembershipService } from '../orgs/membership.service.js';
 import { toEvent } from '../common/serialize.js';
 import { RealtimeGateway } from '../realtime/realtime.gateway.js';
 
@@ -21,6 +17,7 @@ export class EventsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly realtime: RealtimeGateway,
+    private readonly members: MembershipService,
   ) {}
 
   private async getMatchOrThrow(matchId: string): Promise<Match> {
@@ -43,8 +40,9 @@ export class EventsService {
     return null;
   }
 
-  async list(matchId: string, includeVoided = false) {
-    await this.getMatchOrThrow(matchId);
+  async list(userId: string, matchId: string, includeVoided = false) {
+    const match = await this.getMatchOrThrow(matchId);
+    await this.members.assertMember(userId, match.organizationId, 'VIEWER');
     const events = await this.prisma.event.findMany({
       where: { matchId, ...(includeVoided ? {} : { voided: false }) },
       orderBy: [{ period: 'asc' }, { clockMs: 'asc' }, { recordedAt: 'asc' }],
@@ -202,18 +200,9 @@ export class EventsService {
     return { accepted, duplicates, rejected };
   }
 
-  /** Guard helper: ensure the user may write to this match (OWNER or SCORER on match scope). */
+  /** Guard helper: ensure the user may write to this match (SCORER+ in the match's org). */
   async assertCanScore(userId: string, matchId: string): Promise<void> {
     const match = await this.getMatchOrThrow(matchId);
-    if (match.createdById === userId) return;
-    const grant = await this.prisma.permissionGrant.findFirst({
-      where: {
-        userId,
-        resourceId: matchId,
-        scope: 'MATCH',
-        role: { in: ['OWNER', 'SCORER'] },
-      },
-    });
-    if (!grant) throw new ForbiddenException('You do not have permission to score this match');
+    await this.members.assertMember(userId, match.organizationId, 'SCORER');
   }
 }

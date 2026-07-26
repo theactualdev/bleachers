@@ -18,10 +18,11 @@ export class EventsController {
 
   @Get('matches/:matchId/events')
   list(
+    @CurrentUser() user: AuthUser,
     @Param('matchId', ParseUUIDPipe) matchId: string,
     @Query('includeVoided') includeVoided?: string,
   ) {
-    return this.events.list(matchId, includeVoided === 'true');
+    return this.events.list(user.id, matchId, includeVoided === 'true');
   }
 
   @Post('matches/:matchId/events')

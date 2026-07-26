@@ -1,35 +1,31 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import type { CreateMatchInput, UpdateMatchInput } from '@bleachers/types';
 import { hasSportConfig } from '@bleachers/sport-engine';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { MembershipService } from '../orgs/membership.service.js';
 import { toLineup, toMatch, toTeam } from '../common/serialize.js';
 
 @Injectable()
 export class MatchesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly members: MembershipService,
+  ) {}
 
-  /** Ownership guard for mutations: the creator or an OWNER grant on the match. */
-  private async assertOwner(userId: string, matchId: string): Promise<void> {
+  /** Resolve a match's org and assert the caller holds at least `minRole` in it. */
+  private async orgOf(matchId: string): Promise<string> {
     const match = await this.prisma.match.findUnique({
       where: { id: matchId },
-      select: { createdById: true },
+      select: { organizationId: true },
     });
     if (!match) throw new NotFoundException('Match not found');
-    if (match.createdById === userId) return;
-    const grant = await this.prisma.permissionGrant.findFirst({
-      where: { userId, resourceId: matchId, scope: 'MATCH', role: 'OWNER' },
-    });
-    if (!grant) throw new ForbiddenException('You do not have permission to modify this match');
+    return match.organizationId;
   }
 
-  async list(userId: string) {
+  async list(userId: string, orgId: string) {
+    await this.members.assertMember(userId, orgId, 'VIEWER');
     const matches = await this.prisma.match.findMany({
-      where: { createdById: userId },
+      where: { organizationId: orgId },
       orderBy: { scheduledAt: 'desc' },
       include: { homeTeam: true, awayTeam: true },
     });
@@ -40,12 +36,13 @@ export class MatchesService {
     }));
   }
 
-  async get(id: string) {
+  async get(userId: string, id: string) {
     const match = await this.prisma.match.findUnique({
       where: { id },
       include: { homeTeam: true, awayTeam: true, lineups: true },
     });
     if (!match) throw new NotFoundException('Match not found');
+    await this.members.assertMember(userId, match.organizationId, 'VIEWER');
     return {
       ...toMatch(match),
       homeTeam: toTeam(match.homeTeam),
@@ -56,10 +53,12 @@ export class MatchesService {
 
   /**
    * Single-call, transactional match creation — the backbone of the "<30 second" flow.
-   * Validates the sport is supported, teams exist and match the sport, then persists the match
-   * and both lineups atomically.
+   * Validates the sport is supported, teams exist, belong to the active org, and match the
+   * sport, then persists the match and both lineups atomically.
    */
-  async create(userId: string, input: CreateMatchInput) {
+  async create(userId: string, orgId: string, input: CreateMatchInput) {
+    await this.members.assertMember(userId, orgId, 'SCORER');
+
     if (!hasSportConfig(input.sport)) {
       throw new BadRequestException(`Sport "${input.sport}" is not supported yet`);
     }
@@ -69,6 +68,9 @@ export class MatchesService {
       this.prisma.team.findUnique({ where: { id: input.awayTeamId } }),
     ]);
     if (!homeTeam || !awayTeam) throw new BadRequestException('Both teams must exist');
+    if (homeTeam.organizationId !== orgId || awayTeam.organizationId !== orgId) {
+      throw new BadRequestException('Both teams must belong to the active organization');
+    }
     if (homeTeam.sport !== input.sport || awayTeam.sport !== input.sport) {
       throw new BadRequestException('Both teams must match the selected sport');
     }
@@ -86,6 +88,7 @@ export class MatchesService {
           status: input.startNow ? 'LIVE' : 'SCHEDULED',
           statTier: input.statTier,
           competitionId: input.competitionId ?? null,
+          organizationId: orgId,
           createdById: userId,
         },
       });
@@ -107,19 +110,14 @@ export class MatchesService {
         });
       }
 
-      // Owner grant for the creator.
-      await tx.permissionGrant.create({
-        data: { userId, role: 'OWNER', scope: 'MATCH', resourceId: created.id },
-      });
-
       return created;
     });
 
-    return this.get(match.id);
+    return this.get(userId, match.id);
   }
 
   async update(userId: string, id: string, input: UpdateMatchInput) {
-    await this.assertOwner(userId, id);
+    await this.members.assertMember(userId, await this.orgOf(id), 'SCORER');
     const match = await this.prisma.match.update({
       where: { id },
       data: {
@@ -139,7 +137,7 @@ export class MatchesService {
     id: string,
     status: 'LIVE' | 'PAUSED' | 'COMPLETED' | 'ABANDONED',
   ) {
-    await this.assertOwner(userId, id);
+    await this.members.assertMember(userId, await this.orgOf(id), 'SCORER');
     const match = await this.prisma.match.update({ where: { id }, data: { status } });
     return toMatch(match);
   }

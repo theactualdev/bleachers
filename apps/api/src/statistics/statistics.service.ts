@@ -9,14 +9,18 @@ import {
 } from '@bleachers/sport-engine';
 import type { Sport } from '@bleachers/types';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { MembershipService } from '../orgs/membership.service.js';
 import { toEvent } from '../common/serialize.js';
 
 @Injectable()
 export class StatisticsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly members: MembershipService,
+  ) {}
 
   /** Derived match state — score, timeline, per-player and team stats. Never persisted. */
-  async matchStats(matchId: string): Promise<MatchStats> {
+  async matchStatsCore(matchId: string): Promise<MatchStats> {
     const match = await this.prisma.match.findUnique({ where: { id: matchId } });
     if (!match) throw new NotFoundException('Match not found');
     const events = await this.prisma.event.findMany({ where: { matchId, voided: false } });
@@ -24,8 +28,18 @@ export class StatisticsService {
     return reduceMatch(config, matchId, events.map(toEvent), match.statTier);
   }
 
+  async matchStats(userId: string, matchId: string): Promise<MatchStats> {
+    const match = await this.prisma.match.findUnique({
+      where: { id: matchId },
+      select: { organizationId: true },
+    });
+    if (!match) throw new NotFoundException('Match not found');
+    await this.members.assertMember(userId, match.organizationId, 'VIEWER');
+    return this.matchStatsCore(matchId);
+  }
+
   /** Aggregate a player's career by folding all their events (single sport for Phase 1). */
-  async playerCareer(playerId: string, sport: Sport = 'FOOTBALL'): Promise<PlayerCareerStats> {
+  async playerCareerCore(playerId: string, sport: Sport = 'FOOTBALL'): Promise<PlayerCareerStats> {
     const player = await this.prisma.player.findUnique({ where: { id: playerId } });
     if (!player) throw new NotFoundException('Player not found');
 
@@ -44,8 +58,22 @@ export class StatisticsService {
     return aggregatePlayerCareer(config, playerId, events.map(toEvent), appearanceIds.size);
   }
 
+  async playerCareer(
+    userId: string,
+    playerId: string,
+    sport: Sport = 'FOOTBALL',
+  ): Promise<PlayerCareerStats> {
+    const player = await this.prisma.player.findUnique({
+      where: { id: playerId },
+      select: { organizationId: true },
+    });
+    if (!player) throw new NotFoundException('Player not found');
+    await this.members.assertMember(userId, player.organizationId, 'VIEWER');
+    return this.playerCareerCore(playerId, sport);
+  }
+
   /** Win/Draw/Loss, goals, and form for a team, derived from its completed matches. */
-  async teamStats(teamId: string): Promise<TeamStats> {
+  async teamStatsCore(teamId: string): Promise<TeamStats> {
     const team = await this.prisma.team.findUnique({ where: { id: teamId } });
     if (!team) throw new NotFoundException('Team not found');
 
@@ -69,5 +97,15 @@ export class StatisticsService {
     });
 
     return computeTeamStats(teamId, results);
+  }
+
+  async teamStats(userId: string, teamId: string): Promise<TeamStats> {
+    const team = await this.prisma.team.findUnique({
+      where: { id: teamId },
+      select: { organizationId: true },
+    });
+    if (!team) throw new NotFoundException('Team not found');
+    await this.members.assertMember(userId, team.organizationId, 'VIEWER');
+    return this.teamStatsCore(teamId);
   }
 }

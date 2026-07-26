@@ -5,8 +5,9 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import { EventsService } from '../src/events/events.service';
 import { StatisticsService } from '../src/statistics/statistics.service';
 import { MatchesService } from '../src/matches/matches.service';
+import { MembershipService } from '../src/orgs/membership.service';
 import type { RealtimeGateway } from '../src/realtime/realtime.gateway';
-import { createTestUser, deleteTestUser } from './helpers/auth';
+import { createTestUser, deleteTestUser, getPersonalOrg } from './helpers/auth';
 
 /**
  * Integration test against a real Postgres (uses DATABASE_URL). Exercises the event-sourcing
@@ -20,11 +21,13 @@ describe('Events + Statistics (integration)', () => {
     broadcastEvent: () => {},
     broadcastVoid: () => {},
   } as unknown as RealtimeGateway;
-  const events = new EventsService(prisma, realtime);
-  const stats = new StatisticsService(prisma);
-  const matches = new MatchesService(prisma);
+  const members = new MembershipService(prisma);
+  const events = new EventsService(prisma, realtime, members);
+  const stats = new StatisticsService(prisma, members);
+  const matches = new MatchesService(prisma, members);
 
   let userId = '';
+  let orgId = '';
   let homeTeamId = '';
   let awayTeamId = '';
   let p1 = '';
@@ -34,11 +37,13 @@ describe('Events + Statistics (integration)', () => {
   beforeAll(async () => {
     await prisma.$connect();
     userId = await createTestUser();
+    orgId = await getPersonalOrg(userId);
     const home = await prisma.team.create({
       data: {
         name: 'Home',
         colors: { primary: '#111111' },
         sport: 'FOOTBALL',
+        organizationId: orgId,
         createdById: userId,
       },
     });
@@ -47,17 +52,22 @@ describe('Events + Statistics (integration)', () => {
         name: 'Away',
         colors: { primary: '#222222' },
         sport: 'FOOTBALL',
+        organizationId: orgId,
         createdById: userId,
       },
     });
     homeTeamId = home.id;
     awayTeamId = away.id;
-    const pl1 = await prisma.player.create({ data: { name: 'One', createdById: userId } });
-    const pl2 = await prisma.player.create({ data: { name: 'Two', createdById: userId } });
+    const pl1 = await prisma.player.create({
+      data: { name: 'One', organizationId: orgId, createdById: userId },
+    });
+    const pl2 = await prisma.player.create({
+      data: { name: 'Two', organizationId: orgId, createdById: userId },
+    });
     p1 = pl1.id;
     p2 = pl2.id;
 
-    const match = await matches.create(userId, {
+    const match = await matches.create(userId, orgId, {
       sport: 'FOOTBALL',
       homeTeamId,
       awayTeamId,
@@ -76,7 +86,6 @@ describe('Events + Statistics (integration)', () => {
       await prisma.matchLineup.deleteMany({ where: { matchId } });
       await prisma.match.deleteMany({ where: { id: matchId } });
     }
-    if (userId) await prisma.permissionGrant.deleteMany({ where: { userId } });
     if (homeTeamId || awayTeamId) {
       await prisma.team.deleteMany({
         where: { id: { in: [homeTeamId, awayTeamId].filter(Boolean) } },
@@ -99,7 +108,7 @@ describe('Events + Statistics (integration)', () => {
       period: 1,
       clockMs: 60000,
     });
-    const s = await stats.matchStats(matchId);
+    const s = await stats.matchStats(userId, matchId);
     expect(s.score).toEqual([1, 0]);
   });
 
@@ -125,7 +134,7 @@ describe('Events + Statistics (integration)', () => {
     });
     expect(first.duplicate).toBe(false);
     expect(second.duplicate).toBe(true);
-    const s = await stats.matchStats(matchId);
+    const s = await stats.matchStats(userId, matchId);
     expect(s.score).toEqual([1, 1]); // not double-counted
   });
 
@@ -136,7 +145,7 @@ describe('Events + Statistics (integration)', () => {
     expect(after).toBe(before); // nothing deleted
     const voided = await prisma.event.count({ where: { matchId, voided: true } });
     expect(voided).toBe(1);
-    const s = await stats.matchStats(matchId);
+    const s = await stats.matchStats(userId, matchId);
     expect(s.score).toEqual([1, 0]); // away goal voided
   });
 
@@ -168,7 +177,7 @@ describe('Events + Statistics (integration)', () => {
     });
     expect(result.accepted).toContain(newId);
     expect(result.duplicates).toContain(existing!.id);
-    const s = await stats.matchStats(matchId);
+    const s = await stats.matchStats(userId, matchId);
     expect(s.score).toEqual([1, 1]);
   });
 
@@ -187,7 +196,7 @@ describe('Events + Statistics (integration)', () => {
   });
 
   it('aggregates player career totals across the match', async () => {
-    const career = await stats.playerCareer(p1, 'FOOTBALL');
+    const career = await stats.playerCareer(userId, p1, 'FOOTBALL');
     expect(career.appearances).toBeGreaterThanOrEqual(1);
     expect(career.totals.find((t) => t.key === 'goal')?.value).toBe(1);
   });
