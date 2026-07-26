@@ -56,8 +56,11 @@ describe('Composite team registration (integration)', () => {
     expect(row.organizationId).toBe(ownerOrg);
 
     expect(result.roster).toHaveLength(2);
-    const jerseys = result.roster.map((r) => r.jerseyNumber).sort();
-    expect(jerseys).toEqual(['1', '9']);
+    // Roster order must match the submitted players array exactly — not just as a set.
+    const names = result.roster.map((r) => r.player.name);
+    expect(names).toEqual(['Alice Striker', 'Bob Keeper']);
+    const jerseys = result.roster.map((r) => r.jerseyNumber);
+    expect(jerseys).toEqual(['9', '1']);
     for (const entry of result.roster) {
       expect(entry.teamId).toBe(result.team.id);
       const playerRow = await prisma.player.findUniqueOrThrow({ where: { id: entry.playerId } });

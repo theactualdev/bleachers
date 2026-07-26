@@ -107,11 +107,15 @@ export class TeamsService {
           jerseyNumber: r.input.jerseyNumber ?? null,
         })),
       });
-      const roster = await tx.rosterEntry.findMany({
+      // Every row created in this transaction shares an identical Postgres `now()`,
+      // so `createdAt` cannot disambiguate order — re-derive it structurally from
+      // `rows`, which was built in the submitted players' order.
+      const entries = await tx.rosterEntry.findMany({
         where: { teamId: team.id },
         include: { player: true },
-        orderBy: { createdAt: 'asc' },
       });
+      const byPlayerId = new Map(entries.map((e) => [e.playerId, e]));
+      const roster = rows.map((r) => byPlayerId.get(r.playerId)!);
       return { team, roster };
     });
     return {
