@@ -33,6 +33,22 @@ const HOME_TEAM_ID = '10000000-0000-4000-8000-000000000001';
 const AWAY_TEAM_ID = '10000000-0000-4000-8000-000000000002';
 const MATCH_ID = '20000000-0000-4000-8000-000000000001';
 
+/** Fixed player UUIDs so re-seeding upserts in place instead of inserting duplicates. */
+const HOME_PLAYER_IDS = [
+  '30000000-0000-4000-8000-000000000001', // Ada Kwei
+  '30000000-0000-4000-8000-000000000002', // Bola Nnamdi
+  '30000000-0000-4000-8000-000000000003', // Chidi Okoro
+  '30000000-0000-4000-8000-000000000004', // Deji Ade
+  '30000000-0000-4000-8000-000000000005', // Emeka Obi
+];
+const AWAY_PLAYER_IDS = [
+  '30000000-0000-4000-8000-000000000006', // Femi Bello
+  '30000000-0000-4000-8000-000000000007', // Gozie Eze
+  '30000000-0000-4000-8000-000000000008', // Hakeem Musa
+  '30000000-0000-4000-8000-000000000009', // Ike Uzo
+  '30000000-0000-4000-8000-000000000010', // Jide Kolo
+];
+
 async function main(): Promise<void> {
   const userId = await ensureSeedUser();
 
@@ -47,8 +63,8 @@ async function main(): Promise<void> {
   const homePlayers = ['Ada Kwei', 'Bola Nnamdi', 'Chidi Okoro', 'Deji Ade', 'Emeka Obi'];
   const awayPlayers = ['Femi Bello', 'Gozie Eze', 'Hakeem Musa', 'Ike Uzo', 'Jide Kolo'];
 
-  const homeIds = homePlayers.map(() => randomUUID());
-  const awayIds = awayPlayers.map(() => randomUUID());
+  const homeIds = HOME_PLAYER_IDS;
+  const awayIds = AWAY_PLAYER_IDS;
 
   await prisma.team.upsert({
     where: { id: HOME_TEAM_ID },

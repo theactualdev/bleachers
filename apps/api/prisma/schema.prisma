@@ -25,13 +25,13 @@ model Profile {
   updatedAt DateTime @updatedAt
 
   // Domain back-references (ownership / audit).
-  createdPlayers      Player[]          @relation("PlayerCreatedBy")
-  createdTeams        Team[]            @relation("TeamCreatedBy")
-  createdMatches      Match[]           @relation("MatchCreatedBy")
-  recordedEvents      Event[]           @relation("EventRecordedBy")
-  voidedEvents        Event[]           @relation("EventVoidedBy")
+  createdPlayers      Player[]        @relation("PlayerCreatedBy")
+  createdTeams        Team[]          @relation("TeamCreatedBy")
+  createdMatches      Match[]         @relation("MatchCreatedBy")
+  recordedEvents      Event[]         @relation("EventRecordedBy")
+  voidedEvents        Event[]         @relation("EventVoidedBy")
   memberships         OrgMembership[]
-  createdCompetitions Competition[]     @relation("CompetitionCreatedBy")
+  createdCompetitions Competition[]   @relation("CompetitionCreatedBy")
 
   @@map("profiles")
 }
@@ -83,16 +83,16 @@ enum CompetitionFormat {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Player {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String
-  dateOfBirth String? // YYYY-MM-DD
-  photo       String?
-  createdById String   @db.Uuid
-  createdBy   Profile  @relation("PlayerCreatedBy", fields: [createdById], references: [id])
+  id             String       @id @default(uuid()) @db.Uuid
+  name           String
+  dateOfBirth    String? // YYYY-MM-DD
+  photo          String?
+  createdById    String       @db.Uuid
+  createdBy      Profile      @relation("PlayerCreatedBy", fields: [createdById], references: [id])
   organizationId String       @db.Uuid
   organization   Organization @relation(fields: [organizationId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   rosterEntries RosterEntry[]
   lineups       MatchLineup[]
@@ -104,23 +104,23 @@ model Player {
 }
 
 model Team {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String
+  id             String       @id @default(uuid()) @db.Uuid
+  name           String
   // colors stored as JSON { primary, secondary? }
-  colors      Json
-  logo        String?
-  sport       Sport
-  isAdHoc     Boolean  @default(false)
-  createdById String   @db.Uuid
-  createdBy   Profile  @relation("TeamCreatedBy", fields: [createdById], references: [id])
+  colors         Json
+  logo           String?
+  sport          Sport
+  isAdHoc        Boolean      @default(false)
+  createdById    String       @db.Uuid
+  createdBy      Profile      @relation("TeamCreatedBy", fields: [createdById], references: [id])
   organizationId String       @db.Uuid
   organization   Organization @relation(fields: [organizationId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
-  roster     RosterEntry[]
-  homeMatches Match[]      @relation("HomeTeam")
-  awayMatches Match[]      @relation("AwayTeam")
+  roster      RosterEntry[]
+  homeMatches Match[]       @relation("HomeTeam")
+  awayMatches Match[]       @relation("AwayTeam")
 
   @@index([createdById])
   @@index([organizationId])
@@ -142,16 +142,16 @@ model RosterEntry {
 }
 
 model Competition {
-  id          String            @id @default(uuid()) @db.Uuid
-  name        String
-  sport       Sport
-  format      CompetitionFormat
-  createdById String            @db.Uuid
-  createdBy   Profile           @relation("CompetitionCreatedBy", fields: [createdById], references: [id])
-  organizationId String       @db.Uuid
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  id             String            @id @default(uuid()) @db.Uuid
+  name           String
+  sport          Sport
+  format         CompetitionFormat
+  createdById    String            @db.Uuid
+  createdBy      Profile           @relation("CompetitionCreatedBy", fields: [createdById], references: [id])
+  organizationId String            @db.Uuid
+  organization   Organization      @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 
   matches Match[]
 
@@ -160,24 +160,24 @@ model Competition {
 }
 
 model Match {
-  id            String       @id @default(uuid()) @db.Uuid
-  sport         Sport
-  homeTeamId    String       @db.Uuid
-  homeTeam      Team         @relation("HomeTeam", fields: [homeTeamId], references: [id])
-  awayTeamId    String       @db.Uuid
-  awayTeam      Team         @relation("AwayTeam", fields: [awayTeamId], references: [id])
-  venue         String?
-  scheduledAt   DateTime
-  status        MatchStatus  @default(SCHEDULED)
-  statTier      StatTier     @default(BASIC)
-  competitionId String?      @db.Uuid
-  competition   Competition? @relation(fields: [competitionId], references: [id], onDelete: SetNull)
-  createdById   String       @db.Uuid
-  createdBy     Profile      @relation("MatchCreatedBy", fields: [createdById], references: [id])
+  id             String       @id @default(uuid()) @db.Uuid
+  sport          Sport
+  homeTeamId     String       @db.Uuid
+  homeTeam       Team         @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeamId     String       @db.Uuid
+  awayTeam       Team         @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  venue          String?
+  scheduledAt    DateTime
+  status         MatchStatus  @default(SCHEDULED)
+  statTier       StatTier     @default(BASIC)
+  competitionId  String?      @db.Uuid
+  competition    Competition? @relation(fields: [competitionId], references: [id], onDelete: SetNull)
+  createdById    String       @db.Uuid
+  createdBy      Profile      @relation("MatchCreatedBy", fields: [createdById], references: [id])
   organizationId String       @db.Uuid
   organization   Organization @relation(fields: [organizationId], references: [id])
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   lineups MatchLineup[]
   events  Event[]
@@ -237,36 +237,40 @@ model Event {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Organization {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name      String
-  /** URL identity for the public page; auto-generated, unique. */
-  slug      String   @unique
-  logo      String?
-  isPublic  Boolean  @default(false)
-  /** True for the org auto-created at signup; used only for UX defaults. */
-  isPersonal Boolean @default(false)
-  createdById String @db.Uuid
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  /**
+   * URL identity for the public page; auto-generated, unique.
+   */
+  slug        String   @unique
+  logo        String?
+  isPublic    Boolean  @default(false)
+  /**
+   * True for the org auto-created at signup; used only for UX defaults.
+   */
+  isPersonal  Boolean  @default(false)
+  createdById String   @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  memberships OrgMembership[]
-  invites     OrgInvite[]
-  teams       Team[]
-  players     Player[]
-  matches     Match[]
+  memberships  OrgMembership[]
+  invites      OrgInvite[]
+  teams        Team[]
+  players      Player[]
+  matches      Match[]
   competitions Competition[]
 
   @@map("organization")
 }
 
 model OrgMembership {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  orgId     String   @db.Uuid
+  id        String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId     String       @db.Uuid
   org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  userId    String   @db.Uuid
-  user      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String       @db.Uuid
+  user      Profile      @relation(fields: [userId], references: [id], onDelete: Cascade)
   role      Role
-  createdAt DateTime @default(now())
+  createdAt DateTime     @default(now())
 
   @@unique([orgId, userId])
   @@index([userId])
@@ -274,16 +278,18 @@ model OrgMembership {
 }
 
 model OrgInvite {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  orgId     String    @db.Uuid
-  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  /** Random URL-safe token (crypto, ≥24 chars); the invite URL is /join/<token>. */
-  token     String    @unique
-  role      Role
-  createdById String  @db.Uuid
-  expiresAt DateTime
-  revokedAt DateTime?
-  createdAt DateTime  @default(now())
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId       String       @db.Uuid
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  /**
+   * Random URL-safe token (crypto, ≥24 chars); the invite URL is /join/<token>.
+   */
+  token       String       @unique
+  role        Role
+  createdById String       @db.Uuid
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime     @default(now())
 
   @@map("org_invite")
 }
