@@ -1,63 +1,31 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { AuthGate } from '@/components/auth-gate';
 import { PageHeader } from '@/components/page-header';
-import { useTeams, useCreateTeam } from '@/lib/hooks';
+import { useTeams } from '@/lib/hooks';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { EmptyState, Skeleton, Spinner } from '@/components/ui/misc';
+import { EmptyState, Skeleton } from '@/components/ui/misc';
 import { QueryErrorState } from '@/components/ui/query-error';
-
-const COLORS = ['#1E90FF', '#E23B3B', '#22C55E', '#F59E0B', '#8B5CF6', '#111827'];
 
 function TeamsScreen() {
   const { data: teams, isLoading, isError, error, refetch } = useTeams();
-  const create = useCreateTeam();
-  const [name, setName] = useState('');
-  const [color, setColor] = useState(COLORS[0]!);
-
-  async function add(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) return;
-    await create.mutateAsync({ name: name.trim(), colors: { primary: color }, sport: 'FOOTBALL' });
-    setName('');
-  }
 
   return (
     <>
-      <PageHeader title="Teams" />
-      <div className="space-y-4 p-4">
-        <form onSubmit={add} className="space-y-2">
-          <div className="flex gap-2">
-            <Input
-              placeholder="Team name…"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <Button type="submit" disabled={create.isPending}>
-              {create.isPending ? <Spinner /> : <Plus className="h-4 w-4" />}
+      <PageHeader
+        title="Teams"
+        action={
+          <Link href="/teams/new">
+            <Button size="sm">
+              <Plus className="h-4 w-4" /> New team
             </Button>
-          </div>
-          <div className="flex gap-2.5">
-            {COLORS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setColor(c)}
-                aria-label={`Colour ${c}`}
-                className={`ring-offset-canvas ease-spring h-8 w-8 rounded-full ring-offset-2 transition-all duration-200 active:scale-90 ${
-                  color === c ? 'ring-brand ring-2' : ''
-                }`}
-                style={{ backgroundColor: c }}
-              />
-            ))}
-          </div>
-        </form>
-
+          </Link>
+        }
+      />
+      <div className="space-y-4 p-4">
         {isLoading ? (
           <div className="space-y-2">
             <Skeleton className="h-[60px] w-full" />
@@ -67,7 +35,17 @@ function TeamsScreen() {
         ) : isError && !teams ? (
           <QueryErrorState what="teams" error={error} onRetry={() => refetch()} />
         ) : teams && teams.length === 0 ? (
-          <EmptyState title="No teams yet" hint="Create a team, then add players to its roster." />
+          <EmptyState
+            title="No teams yet"
+            hint="Create a team, then add players to its roster."
+            action={
+              <Link href="/teams/new">
+                <Button>
+                  <Plus className="h-4 w-4" /> New team
+                </Button>
+              </Link>
+            }
+          />
         ) : (
           <div className="space-y-2">
             {teams?.map((t) => (

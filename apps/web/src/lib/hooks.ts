@@ -4,7 +4,6 @@ import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/rea
 import type {
   CreateMatchInput,
   CreatePlayerInput,
-  CreateTeamInput,
   Match,
   MatchEvent,
   MatchLineup,
@@ -12,6 +11,7 @@ import type {
   MembershipInfo,
   Player,
   PlayerCareerStats,
+  RegisterTeamInput,
   RosterEntryWithPlayer,
   Team,
 } from '@bleachers/types';
@@ -145,33 +145,23 @@ export const useTeams = () => {
   });
 };
 
-export function useCreateTeam() {
+/**
+ * Composite registration: creates the team, its team-born players, and their
+ * roster entries in one server round-trip. No optimistic update — unlike
+ * `useCreateTeam` there's no single "shape" to fake ahead of a roster of
+ * unknown size, so we just wait for the transaction and invalidate.
+ */
+export function useRegisterTeam() {
   const qc = useQueryClient();
   const orgId = useActiveOrgId();
   return useMutation({
-    mutationFn: (input: CreateTeamInput) => apiPost<Team>('/api/teams', input),
-    onMutate: async (input) => {
-      await qc.cancelQueries({ queryKey: ['teams', orgId] });
-      const previous = qc.getQueryData<Team[]>(['teams', orgId]);
-      const now = new Date().toISOString();
-      const optimistic: Team = {
-        id: `optimistic-${now}`,
-        name: input.name,
-        colors: input.colors,
-        logo: input.logo ?? null,
-        sport: input.sport,
-        isAdHoc: input.isAdHoc ?? false,
-        createdById: 'me',
-        createdAt: now,
-        updatedAt: now,
-      };
-      qc.setQueryData<Team[]>(['teams', orgId], (old) => [...(old ?? []), optimistic]);
-      return { previous };
+    mutationFn: (input: RegisterTeamInput) =>
+      apiPost<{ team: Team; roster: RosterEntryWithPlayer[] }>('/api/teams/register', input),
+    onSuccess: ({ team }) => {
+      qc.invalidateQueries({ queryKey: ['teams', orgId] });
+      qc.invalidateQueries({ queryKey: ['players', orgId] });
+      qc.invalidateQueries({ queryKey: ['roster', orgId, team.id] });
     },
-    onError: (_e, _input, ctx) => {
-      if (ctx?.previous) qc.setQueryData(['teams', orgId], ctx.previous);
-    },
-    onSettled: () => qc.invalidateQueries({ queryKey: ['teams', orgId] }),
   });
 }
 
