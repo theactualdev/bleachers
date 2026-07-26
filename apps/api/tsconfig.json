@@ -4,7 +4,7 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "baseUrl": "./",
-    "types": ["node"],
+    "types": ["node", "express", "multer"],
     "declaration": false,
     "declarationMap": false
   },
