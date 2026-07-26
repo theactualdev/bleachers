@@ -3,7 +3,7 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   CreateMatchInput,
-  CreatePlayerInput,
+  CreateTeamPlayerInput,
   Match,
   MatchEvent,
   MatchLineup,
@@ -94,37 +94,6 @@ export const usePlayers = () => {
     enabled: !!orgId,
   });
 };
-
-export function useCreatePlayer() {
-  const qc = useQueryClient();
-  const orgId = useActiveOrgId();
-  return useMutation({
-    mutationFn: (input: CreatePlayerInput) => apiPost<Player>('/api/players', input),
-    // Optimistically show the new player immediately, then reconcile.
-    onMutate: async (input) => {
-      await qc.cancelQueries({ queryKey: ['players', orgId] });
-      const previous = qc.getQueryData<Player[]>(['players', orgId]);
-      const now = new Date().toISOString();
-      const optimistic: Player = {
-        id: `optimistic-${now}`,
-        name: input.name,
-        dateOfBirth: input.dateOfBirth ?? null,
-        photo: input.photo ?? null,
-        createdById: 'me',
-        createdAt: now,
-        updatedAt: now,
-      };
-      qc.setQueryData<Player[]>(['players', orgId], (old) =>
-        [...(old ?? []), optimistic].sort((a, b) => a.name.localeCompare(b.name)),
-      );
-      return { previous };
-    },
-    onError: (_e, _input, ctx) => {
-      if (ctx?.previous) qc.setQueryData(['players', orgId], ctx.previous);
-    },
-    onSettled: () => qc.invalidateQueries({ queryKey: ['players', orgId] }),
-  });
-}
 
 export const usePlayerCareer = (id: string) => {
   const orgId = useActiveOrgId();
@@ -233,6 +202,26 @@ export function useAddToRoster(teamId: string) {
       if (ctx?.previous) qc.setQueryData(['roster', orgId, teamId], ctx.previous);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: ['roster', orgId, teamId] }),
+  });
+}
+
+/**
+ * Creates a brand-new team-born player and rosters them in one call — the
+ * "New player" mini-form on the team page. No optimistic update (mirrors
+ * `useRegisterTeam`'s reasoning: we don't want to fake a player id ahead of
+ * the round-trip), just invalidate both the roster and the org-wide players
+ * list once the server confirms.
+ */
+export function useCreateTeamPlayer(teamId: string) {
+  const qc = useQueryClient();
+  const orgId = useActiveOrgId();
+  return useMutation({
+    mutationFn: (input: CreateTeamPlayerInput) =>
+      apiPost<RosterEntryWithPlayer>(`/api/teams/${teamId}/players`, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['roster', orgId, teamId] });
+      qc.invalidateQueries({ queryKey: ['players', orgId] });
+    },
   });
 }
 

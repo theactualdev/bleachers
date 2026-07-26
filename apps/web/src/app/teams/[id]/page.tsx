@@ -1,13 +1,77 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
+import { UserPlus } from 'lucide-react';
 import { AuthGate } from '@/components/auth-gate';
 import { PageHeader } from '@/components/page-header';
-import { useAddToRoster, usePlayers, useRoster, useTeamMemberships, useTeams } from '@/lib/hooks';
+import {
+  useAddToRoster,
+  useCreateTeamPlayer,
+  usePlayers,
+  useRoster,
+  useTeamMemberships,
+  useTeams,
+} from '@/lib/hooks';
+import { Avatar } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ImagePicker } from '@/components/ui/image-picker';
+import { Input } from '@/components/ui/input';
 import { Select, type SelectOption } from '@/components/ui/select';
-import { EmptyState, Skeleton } from '@/components/ui/misc';
+import { EmptyState, Skeleton, Spinner } from '@/components/ui/misc';
 import { QueryErrorState } from '@/components/ui/query-error';
+
+/** Compact "add a brand-new player straight onto this roster" form. */
+function NewPlayerForm({ teamId }: { teamId: string }) {
+  const createPlayer = useCreateTeamPlayer(teamId);
+  const [name, setName] = useState('');
+  const [jerseyNumber, setJerseyNumber] = useState('');
+  const [photo, setPhoto] = useState<string | null>(null);
+
+  const canSubmit = name.trim().length > 0;
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!canSubmit) return;
+    await createPlayer.mutateAsync({
+      name: name.trim(),
+      jerseyNumber: jerseyNumber.trim() || undefined,
+      photo: photo ?? undefined,
+    });
+    setName('');
+    setJerseyNumber('');
+    setPhoto(null);
+  }
+
+  return (
+    <Card className="p-3">
+      <p className="text-eyebrow text-ink-3 mb-3">New player</p>
+      <form onSubmit={submit} className="space-y-3">
+        <div className="flex items-center gap-3">
+          <ImagePicker value={photo} onChange={setPhoto} shape="circle" />
+          <div className="flex min-w-0 flex-1 gap-2">
+            <Input
+              placeholder="Player name…"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="flex-1"
+            />
+            <Input
+              placeholder="#"
+              value={jerseyNumber}
+              onChange={(e) => setJerseyNumber(e.target.value.replace(/\D/g, '').slice(0, 3))}
+              inputMode="numeric"
+              className="w-14 text-center"
+            />
+          </div>
+        </div>
+        <Button type="submit" className="w-full" disabled={!canSubmit || createPlayer.isPending}>
+          {createPlayer.isPending ? <Spinner /> : <UserPlus className="h-4 w-4" />} Add player
+        </Button>
+      </form>
+    </Card>
+  );
+}
 
 function TeamProfile({ id }: { id: string }) {
   const { data: teams } = useTeams();
@@ -61,6 +125,8 @@ function TeamProfile({ id }: { id: string }) {
           onChange={onAdd}
         />
 
+        <NewPlayerForm teamId={id} />
+
         {isLoading ? (
           <div className="space-y-2">
             <Skeleton className="h-[60px] w-full" />
@@ -80,10 +146,13 @@ function TeamProfile({ id }: { id: string }) {
                   key={r.id}
                   className={`flex items-center gap-3 p-3 transition-opacity ${pending ? 'opacity-60' : ''}`}
                 >
-                  <div className="glass font-display text-ink-1 flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold">
-                    {r.jerseyNumber ?? r.player.name.slice(0, 2).toUpperCase()}
-                  </div>
+                  <Avatar src={r.player.photo} name={r.player.name} size="sm" />
                   <span className="text-ink-1 font-semibold">{r.player.name}</span>
+                  {r.jerseyNumber && (
+                    <span className="text-ink-3 ml-auto text-sm font-semibold">
+                      #{r.jerseyNumber}
+                    </span>
+                  )}
                 </Card>
               );
             })}

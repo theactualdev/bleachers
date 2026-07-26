@@ -3,19 +3,21 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ChevronRight, Play, Zap } from 'lucide-react';
-import type { LineupSelection } from '@bleachers/types';
+import { ChevronRight, Play, Plus, X, Zap } from 'lucide-react';
+import type { LineupSelection, Team } from '@bleachers/types';
 import { AuthGate } from '@/components/auth-gate';
 import { PageHeader } from '@/components/page-header';
+import { TeamRegistrationForm } from '@/components/team-registration-form';
 import { useCreateMatch, useRoster, useTeams } from '@/lib/hooks';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Spinner } from '@/components/ui/misc';
+import { Skeleton, Spinner } from '@/components/ui/misc';
+import { QueryErrorState } from '@/components/ui/query-error';
 import { cn } from '@/lib/utils';
 
 function CreateMatchFlow() {
   const router = useRouter();
-  const { data: teams } = useTeams();
+  const { data: teams, isLoading, isError, error, refetch } = useTeams();
   const create = useCreateMatch();
 
   const [step, setStep] = useState(0);
@@ -70,28 +72,42 @@ function CreateMatchFlow() {
             animate={{ opacity: 1, x: 0 }}
             className="space-y-4"
           >
-            <TeamPicker
-              label="Home"
-              teams={teams ?? []}
-              value={homeTeamId}
-              exclude={awayTeamId}
-              onChange={setHome}
-            />
-            <TeamPicker
-              label="Away"
-              teams={teams ?? []}
-              value={awayTeamId}
-              exclude={homeTeamId}
-              onChange={setAway}
-            />
-            {teams && teams.length < 2 && (
-              <p className="text-ink-3 text-sm">
-                You need at least two teams. Create teams on the Teams tab first.
-              </p>
+            {isLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+              </div>
+            ) : isError ? (
+              <QueryErrorState what="your teams" error={error} onRetry={() => refetch()} />
+            ) : !teams || teams.length < 2 ? (
+              <div className="space-y-3">
+                <p className="text-eyebrow text-ink-3">
+                  Create your {(teams?.length ?? 0) === 0 ? 'first' : 'second'} team
+                </p>
+                <TeamRegistrationForm compact onDone={() => refetch()} />
+              </div>
+            ) : (
+              <>
+                <TeamPicker
+                  label="Home"
+                  teams={teams}
+                  value={homeTeamId}
+                  exclude={awayTeamId}
+                  onChange={setHome}
+                />
+                <TeamPicker
+                  label="Away"
+                  teams={teams}
+                  value={awayTeamId}
+                  exclude={homeTeamId}
+                  onChange={setAway}
+                />
+                <NewTeamTile onCreated={() => refetch()} />
+                <Button className="w-full" disabled={!canNextTeams} onClick={() => setStep(1)}>
+                  Next: lineups <ChevronRight className="h-4 w-4" />
+                </Button>
+              </>
             )}
-            <Button className="w-full" disabled={!canNextTeams} onClick={() => setStep(1)}>
-              Next: lineups <ChevronRight className="h-4 w-4" />
-            </Button>
           </motion.div>
         )}
 
@@ -198,6 +214,51 @@ function Steps({ current, labels }: { current: number; labels: string[] }) {
         </div>
       ))}
     </div>
+  );
+}
+
+/**
+ * "+ New team" tile — collapsed, it's just an affordance next to the
+ * pickers; tapping it swaps in the same compact `TeamRegistrationForm` used
+ * for the &lt;2-team empty state, so the wizard never needs a trip to the
+ * Teams tab. Collapses itself again once the team is created.
+ */
+function NewTeamTile({ onCreated }: { onCreated: (team: Team) => void }) {
+  const [open, setOpen] = useState(false);
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="glass border-hairline text-ink-3 hover:text-ink-1 ease-spring flex w-full items-center justify-center gap-2 rounded-md border border-dashed p-3 text-sm font-semibold transition-all duration-200 active:scale-[0.98]"
+      >
+        <Plus className="h-4 w-4" /> New team
+      </button>
+    );
+  }
+
+  return (
+    <Card className="p-3">
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-eyebrow text-ink-3">New team</p>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          aria-label="Cancel new team"
+          className="text-ink-3 hover:text-ink-1 ease-spring transition-colors duration-200 active:scale-90"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <TeamRegistrationForm
+        compact
+        onDone={(team) => {
+          setOpen(false);
+          onCreated(team);
+        }}
+      />
+    </Card>
   );
 }
 
