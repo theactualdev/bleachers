@@ -1,40 +1,45 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import type { AddRosterEntryInput, CreateTeamInput, UpdateTeamInput } from '@bleachers/types';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { MembershipService } from '../orgs/membership.service.js';
 import { toPlayer, toRosterEntry, toTeam } from '../common/serialize.js';
 
 @Injectable()
 export class TeamsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly members: MembershipService,
+  ) {}
 
-  /** Ownership guard for mutations: only the team's creator may modify it or its roster. */
-  private async assertOwner(userId: string, teamId: string): Promise<void> {
+  /** Resolve a team's org and assert the caller holds at least `minRole` in it. */
+  private async orgOf(teamId: string): Promise<string> {
     const team = await this.prisma.team.findUnique({
       where: { id: teamId },
-      select: { createdById: true },
+      select: { organizationId: true },
     });
     if (!team) throw new NotFoundException('Team not found');
-    if (team.createdById !== userId) {
-      throw new ForbiddenException('You do not have permission to modify this team');
-    }
+    return team.organizationId;
   }
 
-  async list(userId: string) {
+  async list(userId: string, orgId: string) {
+    await this.members.assertMember(userId, orgId, 'VIEWER');
     const teams = await this.prisma.team.findMany({
-      where: { createdById: userId },
+      where: { organizationId: orgId },
       orderBy: { name: 'asc' },
     });
     return teams.map(toTeam);
   }
 
-  async get(id: string) {
+  async get(userId: string, id: string) {
     const team = await this.prisma.team.findUnique({ where: { id } });
     if (!team) throw new NotFoundException('Team not found');
+    await this.members.assertMember(userId, team.organizationId, 'VIEWER');
     return toTeam(team);
   }
 
-  async create(userId: string, input: CreateTeamInput) {
+  async create(userId: string, orgId: string, input: CreateTeamInput) {
+    await this.members.assertMember(userId, orgId, 'SCORER');
     const team = await this.prisma.team.create({
       data: {
         name: input.name,
@@ -42,6 +47,7 @@ export class TeamsService {
         logo: input.logo ?? null,
         sport: input.sport,
         isAdHoc: input.isAdHoc ?? false,
+        organizationId: orgId,
         createdById: userId,
       },
     });
@@ -49,7 +55,7 @@ export class TeamsService {
   }
 
   async update(userId: string, id: string, input: UpdateTeamInput) {
-    await this.assertOwner(userId, id);
+    await this.members.assertMember(userId, await this.orgOf(id), 'SCORER');
     const team = await this.prisma.team.update({
       where: { id },
       data: {
@@ -65,8 +71,8 @@ export class TeamsService {
     return toTeam(team);
   }
 
-  async getRoster(teamId: string) {
-    await this.get(teamId);
+  async getRoster(userId: string, teamId: string) {
+    await this.members.assertMember(userId, await this.orgOf(teamId), 'VIEWER');
     const entries = await this.prisma.rosterEntry.findMany({
       where: { teamId },
       include: { player: true },
@@ -79,7 +85,7 @@ export class TeamsService {
   }
 
   async addToRoster(userId: string, teamId: string, input: AddRosterEntryInput) {
-    await this.assertOwner(userId, teamId);
+    await this.members.assertMember(userId, await this.orgOf(teamId), 'SCORER');
     const entry = await this.prisma.rosterEntry.upsert({
       where: { teamId_playerId: { teamId, playerId: input.playerId } },
       create: {
@@ -94,7 +100,7 @@ export class TeamsService {
   }
 
   async removeFromRoster(userId: string, teamId: string, playerId: string) {
-    await this.assertOwner(userId, teamId);
+    await this.members.assertMember(userId, await this.orgOf(teamId), 'SCORER');
     await this.prisma.rosterEntry.deleteMany({ where: { teamId, playerId } });
     return { removed: true };
   }

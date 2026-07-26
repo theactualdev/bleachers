@@ -9,6 +9,7 @@ import {
 } from '@bleachers/types';
 import { CurrentUser } from '../auth/auth.decorators.js';
 import type { AuthUser } from '../auth/auth.types.js';
+import { CurrentOrgId } from '../orgs/org.decorators.js';
 import { ZodValidationPipe } from '../common/zod-validation.pipe.js';
 import { TeamsService } from './teams.service.js';
 
@@ -17,21 +18,22 @@ export class TeamsController {
   constructor(private readonly teams: TeamsService) {}
 
   @Get()
-  list(@CurrentUser() user: AuthUser) {
-    return this.teams.list(user.id);
+  list(@CurrentUser() user: AuthUser, @CurrentOrgId() orgId: string) {
+    return this.teams.list(user.id, orgId);
   }
 
   @Get(':id')
-  get(@Param('id', ParseUUIDPipe) id: string) {
-    return this.teams.get(id);
+  get(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.teams.get(user.id, id);
   }
 
   @Post()
   create(
     @CurrentUser() user: AuthUser,
+    @CurrentOrgId() orgId: string,
     @Body(new ZodValidationPipe(CreateTeamSchema)) body: CreateTeamInput,
   ) {
-    return this.teams.create(user.id, body);
+    return this.teams.create(user.id, orgId, body);
   }
 
   @Patch(':id')
@@ -44,8 +46,8 @@ export class TeamsController {
   }
 
   @Get(':id/roster')
-  roster(@Param('id', ParseUUIDPipe) id: string) {
-    return this.teams.getRoster(id);
+  roster(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.teams.getRoster(user.id, id);
   }
 
   @Post(':id/roster')

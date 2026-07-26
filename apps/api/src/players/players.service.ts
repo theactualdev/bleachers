@@ -1,32 +1,40 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import type { CreatePlayerInput, UpdatePlayerInput } from '@bleachers/types';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { MembershipService } from '../orgs/membership.service.js';
 import { toPlayer } from '../common/serialize.js';
 
 @Injectable()
 export class PlayersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly members: MembershipService,
+  ) {}
 
-  async list(userId: string) {
+  async list(userId: string, orgId: string) {
+    await this.members.assertMember(userId, orgId, 'VIEWER');
     const players = await this.prisma.player.findMany({
-      where: { createdById: userId },
+      where: { organizationId: orgId },
       orderBy: { name: 'asc' },
     });
     return players.map(toPlayer);
   }
 
-  async get(id: string) {
+  async get(userId: string, id: string) {
     const player = await this.prisma.player.findUnique({ where: { id } });
     if (!player) throw new NotFoundException('Player not found');
+    await this.members.assertMember(userId, player.organizationId, 'VIEWER');
     return toPlayer(player);
   }
 
-  async create(userId: string, input: CreatePlayerInput) {
+  async create(userId: string, orgId: string, input: CreatePlayerInput) {
+    await this.members.assertMember(userId, orgId, 'SCORER');
     const player = await this.prisma.player.create({
       data: {
         name: input.name,
         dateOfBirth: input.dateOfBirth ?? null,
         photo: input.photo ?? null,
+        organizationId: orgId,
         createdById: userId,
       },
     });
@@ -36,9 +44,7 @@ export class PlayersService {
   async update(userId: string, id: string, input: UpdatePlayerInput) {
     const existing = await this.prisma.player.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Player not found');
-    if (existing.createdById !== userId) {
-      throw new ForbiddenException('You do not have permission to modify this player');
-    }
+    await this.members.assertMember(userId, existing.organizationId, 'SCORER');
     const player = await this.prisma.player.update({
       where: { id },
       data: {
