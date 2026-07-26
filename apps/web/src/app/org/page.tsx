@@ -12,6 +12,7 @@ import { useMe } from '@/lib/hooks';
 import { useActiveOrgId } from '@/lib/org-store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ImagePicker } from '@/components/ui/image-picker';
 import { Input } from '@/components/ui/input';
 import { Select, type SelectOption } from '@/components/ui/select';
 import { Badge, EmptyState, Skeleton, Spinner } from '@/components/ui/misc';
@@ -168,6 +169,16 @@ function OrgSettingsScreen() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] }),
   });
 
+  // ── Logo ─────────────────────────────────────────────────────────────────
+  const [logo, setLogo] = useState<string | null>(null);
+  const updateLogo = useMutation({
+    mutationFn: (url: string | null) => apiPatch<Organization>(`/api/orgs/${orgId}`, { logo: url }),
+    onSuccess: (org) => {
+      setLogo(org.logo);
+      qc.invalidateQueries({ queryKey: ['me'] });
+    },
+  });
+
   // ── Public toggle ────────────────────────────────────────────────────────
   const togglePublic = useMutation({
     mutationFn: (next: boolean) => apiPatch<Organization>(`/api/orgs/${orgId}`, { isPublic: next }),
@@ -241,24 +252,36 @@ function OrgSettingsScreen() {
                   <CardTitle>Organization name</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex gap-2">
-                    <Input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      aria-label="Organization name"
+                  <div className="flex items-center gap-3">
+                    <ImagePicker
+                      value={logo}
+                      onChange={(url) => updateLogo.mutate(url)}
+                      shape="square"
                     />
-                    <Button
-                      onClick={() => renameOrg.mutate(name.trim())}
-                      disabled={
-                        renameOrg.isPending || !name.trim() || name.trim() === active?.orgName
-                      }
-                    >
-                      {renameOrg.isPending ? <Spinner /> : 'Save'}
-                    </Button>
+                    <div className="flex flex-1 gap-2">
+                      <Input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        aria-label="Organization name"
+                      />
+                      <Button
+                        onClick={() => renameOrg.mutate(name.trim())}
+                        disabled={
+                          renameOrg.isPending || !name.trim() || name.trim() === active?.orgName
+                        }
+                      >
+                        {renameOrg.isPending ? <Spinner /> : 'Save'}
+                      </Button>
+                    </div>
                   </div>
                   {renameOrg.isError && (
                     <p className="text-negative text-sm">
                       {errorMessage(renameOrg.error, 'Could not rename the organization')}
+                    </p>
+                  )}
+                  {updateLogo.isError && (
+                    <p className="text-negative text-sm">
+                      {errorMessage(updateLogo.error, 'Could not update the logo')}
                     </p>
                   )}
                 </CardContent>

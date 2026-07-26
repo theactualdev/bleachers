@@ -4,6 +4,7 @@ import { use } from 'react';
 import { AuthGate } from '@/components/auth-gate';
 import { PageHeader } from '@/components/page-header';
 import { usePlayerCareer, usePlayers } from '@/lib/hooks';
+import { Avatar } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/misc';
 import { StatGrid } from '@/components/stat-grid';
@@ -19,9 +20,7 @@ function PlayerProfile({ id }: { id: string }) {
       <PageHeader title="Player" />
       <div className="space-y-4 px-4 py-2">
         <div className="flex items-center gap-4">
-          <div className="glass font-display text-ink-1 flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-bold">
-            {(player?.name ?? '?').slice(0, 2).toUpperCase()}
-          </div>
+          <Avatar src={player?.photo} name={player?.name} size="lg" />
           <div>
             <h1 className="font-display text-ink-1 text-2xl font-bold tracking-tight">
               {player?.name ?? 'Player'}

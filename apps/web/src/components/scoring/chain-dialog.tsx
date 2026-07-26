@@ -2,12 +2,14 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import type { ChainPrompt } from '@bleachers/sport-engine';
+import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 
 export interface ChainPlayer {
   playerId: string;
   name: string;
   jersey: string | null;
+  photo: string | null;
 }
 
 /** The optional chained follow-up (e.g. Goal → "Who assisted?"). Fully config-driven. */
@@ -47,9 +49,12 @@ export function ChainDialog({
                 <button
                   key={p.playerId}
                   onClick={() => onAnswer(p.playerId)}
-                  className="glass ease-spring text-ink-1 flex h-[4.5rem] flex-col items-center justify-center gap-0.5 rounded-md px-2 text-center text-xs font-medium transition-all duration-200 active:scale-95"
+                  className="glass ease-spring text-ink-1 flex h-24 flex-col items-center justify-center gap-1 rounded-md px-2 text-center text-xs font-medium transition-all duration-200 active:scale-95"
                 >
-                  {p.jersey && <span className="font-display text-xl font-bold">{p.jersey}</span>}
+                  <Avatar src={p.photo} name={p.jersey ?? p.name} size="sm" />
+                  {p.jersey && (
+                    <span className="font-display text-sm font-bold leading-none">{p.jersey}</span>
+                  )}
                   <span className="line-clamp-2 leading-tight">{p.name}</span>
                 </button>
               ))}

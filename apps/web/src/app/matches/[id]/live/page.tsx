@@ -5,13 +5,14 @@ import Link from 'next/link';
 import { ArrowLeft, Pause, Play, RotateCcw, Share2 } from 'lucide-react';
 import type { ChainPrompt, SportConfig } from '@bleachers/sport-engine';
 import { getChainedPrompts, getEventType, getSportConfig } from '@bleachers/sport-engine';
-import type { MatchEvent, MatchSide } from '@bleachers/types';
+import type { MatchEvent, MatchSide, TeamColors } from '@bleachers/types';
 import { AuthGate } from '@/components/auth-gate';
 import { useMatch, usePlayers } from '@/lib/hooks';
 import { useLiveScoring } from '@/lib/scoring';
 import { Scoreboard } from '@/components/scoring/scoreboard';
 import { EventPicker } from '@/components/scoring/event-picker';
 import { ChainDialog, type ChainPlayer } from '@/components/scoring/chain-dialog';
+import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/misc';
 import { QueryErrorState } from '@/components/ui/query-error';
@@ -50,6 +51,7 @@ function LiveScoring({ id }: { id: string }) {
   } | null>(null);
 
   const nameOf = (pid: string) => players?.find((p) => p.id === pid)?.name ?? 'Player';
+  const photoOf = (pid: string) => players?.find((p) => p.id === pid)?.photo ?? null;
   const lineupFor = (side: MatchSide) =>
     (match?.lineups ?? [])
       .filter((l) => l.side === side)
@@ -57,6 +59,7 @@ function LiveScoring({ id }: { id: string }) {
         playerId: l.playerId,
         name: nameOf(l.playerId),
         jersey: l.jerseyNumberOverride,
+        photo: photoOf(l.playerId),
       }));
 
   if (isError && !match) {
@@ -75,8 +78,10 @@ function LiveScoring({ id }: { id: string }) {
     );
   }
 
-  const homeColor = (match.homeTeam.colors as { primary: string }).primary;
-  const awayColor = (match.awayTeam.colors as { primary: string }).primary;
+  const homeColors = match.homeTeam.colors as TeamColors;
+  const awayColors = match.awayTeam.colors as TeamColors;
+  const homeColor = homeColors.primary;
+  const awayColor = awayColors.primary;
 
   async function onPickEvent(eventTypeId: string) {
     if (!selection) return;
@@ -128,7 +133,7 @@ function LiveScoring({ id }: { id: string }) {
             : 'HOME',
       )
         .filter((p) => p.playerId !== chain.parentPlayerId)
-        .map((p) => ({ playerId: p.playerId, name: p.name, jersey: p.jersey }))
+        .map((p) => ({ playerId: p.playerId, name: p.name, jersey: p.jersey, photo: p.photo }))
     : [];
 
   return (
@@ -164,8 +169,10 @@ function LiveScoring({ id }: { id: string }) {
         <Scoreboard
           homeName={match.homeTeam.name}
           awayName={match.awayTeam.name}
-          homeColor={homeColor}
-          awayColor={awayColor}
+          homeLogo={match.homeTeam.logo}
+          awayLogo={match.awayTeam.logo}
+          homeColors={homeColors}
+          awayColors={awayColors}
           score={stats.score}
           clockLabel={formatClock(elapsedMs)}
           periodLabel={`${config.periods.periodLabel} ${period}`}
@@ -194,14 +201,16 @@ function LiveScoring({ id }: { id: string }) {
           <SideColumn
             side="HOME"
             teamName={match.homeTeam.name}
-            color={homeColor}
+            logo={match.homeTeam.logo}
+            colors={homeColors}
             players={lineupFor('HOME')}
             onSelect={(sel) => setSelection(sel)}
           />
           <SideColumn
             side="AWAY"
             teamName={match.awayTeam.name}
-            color={awayColor}
+            logo={match.awayTeam.logo}
+            colors={awayColors}
             players={lineupFor('AWAY')}
             onSelect={(sel) => setSelection(sel)}
           />
@@ -237,20 +246,22 @@ function LiveScoring({ id }: { id: string }) {
 function SideColumn({
   side,
   teamName,
-  color,
+  logo,
+  colors,
   players,
   onSelect,
 }: {
   side: MatchSide;
   teamName: string;
-  color: string;
-  players: { playerId: string; name: string; jersey: string | null }[];
+  logo?: string | null;
+  colors: TeamColors;
+  players: { playerId: string; name: string; jersey: string | null; photo: string | null }[];
   onSelect: (sel: Selection) => void;
 }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <span className="h-5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+        <Avatar src={logo} name={teamName} color={colors} size="sm" shape="square" />
         <span className="text-ink-1 truncate text-sm font-semibold">{teamName}</span>
       </div>
       <button
@@ -264,16 +275,15 @@ function SideColumn({
           <button
             key={p.playerId}
             onClick={() => onSelect({ side, playerId: p.playerId, label: `${p.name}` })}
-            className="glass ease-spring flex h-16 flex-col items-center justify-center rounded-md px-1 text-center transition-all duration-200 active:scale-95"
+            className="glass ease-spring flex h-24 flex-col items-center justify-center gap-1 rounded-md px-1 text-center transition-all duration-200 active:scale-95"
           >
+            <Avatar src={p.photo} name={p.jersey ?? p.name} size="sm" />
             {p.jersey && (
-              <span className="font-display text-ink-1 text-lg font-bold leading-none">
+              <span className="font-display text-ink-1 text-xs font-bold leading-none">
                 {p.jersey}
               </span>
             )}
-            <span className="text-ink-2 mt-0.5 line-clamp-2 text-[11px] leading-tight">
-              {p.name}
-            </span>
+            <span className="text-ink-2 line-clamp-2 text-[11px] leading-tight">{p.name}</span>
           </button>
         ))}
         {players.length === 0 && (

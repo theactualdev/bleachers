@@ -5,10 +5,17 @@ import type { MatchStats, Sport } from '@bleachers/types';
 
 import { API_URL } from '@/lib/api-url';
 
+interface PublicTeam {
+  id: string;
+  name: string;
+  colors: { primary: string; secondary?: string };
+  logo: string | null;
+}
+
 interface PublicMatch {
   match: { id: string; sport: Sport; status: string; venue: string | null; scheduledAt: string };
-  homeTeam: { id: string; name: string; colors: { primary: string } };
-  awayTeam: { id: string; name: string; colors: { primary: string } };
+  homeTeam: PublicTeam;
+  awayTeam: PublicTeam;
   playerNames: Record<string, string>;
   stats: MatchStats;
 }
@@ -21,6 +28,26 @@ async function getMatch(id: string): Promise<PublicMatch | null> {
 
 function minute(ms: number): string {
   return `${Math.floor(ms / 60000)}'`;
+}
+
+/** Team logo, or the team-coloured swatch `Avatar` renders when there's no logo. */
+function TeamMark({ team, className }: { team: PublicTeam; className: string }) {
+  if (team.logo) {
+    return (
+      <img src={team.logo} alt="" className={`shrink-0 rounded-md object-cover ${className}`} />
+    );
+  }
+  return (
+    <div
+      className={`border-hairline shrink-0 overflow-hidden rounded-md border ${className}`}
+      style={{
+        background: team.colors.secondary
+          ? `linear-gradient(135deg, ${team.colors.primary} 50%, ${team.colors.secondary} 50%)`
+          : team.colors.primary,
+      }}
+      aria-hidden="true"
+    />
+  );
 }
 
 export default async function PublicMatchPage({ params }: { params: Promise<{ id: string }> }) {
@@ -60,20 +87,14 @@ export default async function PublicMatchPage({ params }: { params: Promise<{ id
         />
         <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-3">
           <div className="flex items-center gap-2.5">
-            <span
-              className="h-7 w-1.5 shrink-0 rounded-full"
-              style={{ backgroundColor: homeTeam.colors.primary }}
-            />
+            <TeamMark team={homeTeam} className="h-7 w-7" />
             <span className="text-ink-1 truncate font-semibold">{homeTeam.name}</span>
           </div>
           <div className="font-display tabnums text-ink-1 text-score flex items-center gap-2 leading-none">
             {stats.score[0]} <span className="text-ink-3 text-3xl">·</span> {stats.score[1]}
           </div>
           <div className="flex flex-row-reverse items-center gap-2.5">
-            <span
-              className="h-7 w-1.5 shrink-0 rounded-full"
-              style={{ backgroundColor: awayTeam.colors.primary }}
-            />
+            <TeamMark team={awayTeam} className="h-7 w-7" />
             <span className="text-ink-1 truncate text-right font-semibold">{awayTeam.name}</span>
           </div>
         </div>

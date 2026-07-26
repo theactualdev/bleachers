@@ -34,8 +34,18 @@ export class SharingService {
         venue: match.venue,
         scheduledAt: match.scheduledAt.toISOString(),
       },
-      homeTeam: { id: match.homeTeam.id, name: match.homeTeam.name, colors: match.homeTeam.colors },
-      awayTeam: { id: match.awayTeam.id, name: match.awayTeam.name, colors: match.awayTeam.colors },
+      homeTeam: {
+        id: match.homeTeam.id,
+        name: match.homeTeam.name,
+        colors: match.homeTeam.colors,
+        logo: match.homeTeam.logo,
+      },
+      awayTeam: {
+        id: match.awayTeam.id,
+        name: match.awayTeam.name,
+        colors: match.awayTeam.colors,
+        logo: match.awayTeam.logo,
+      },
       playerNames,
       stats,
     };

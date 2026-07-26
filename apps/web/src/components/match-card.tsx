@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import type { Match, Team } from '@bleachers/types';
+import type { Match, Team, TeamColors } from '@bleachers/types';
 import { useMatchStats } from '@/lib/hooks';
+import { Avatar } from '@/components/ui/avatar';
 import { Badge, LiveDot } from '@/components/ui/misc';
 
 type MatchWithTeams = Match & { homeTeam: Team; awayTeam: Team };
@@ -21,8 +22,10 @@ export function MatchCard({ match }: { match: MatchWithTeams }) {
   const href =
     live || match.status === 'SCHEDULED' ? `/matches/${match.id}/live` : `/matches/${match.id}`;
 
-  const homeColor = (match.homeTeam.colors as { primary: string }).primary;
-  const awayColor = (match.awayTeam.colors as { primary: string }).primary;
+  const homeColors = match.homeTeam.colors as TeamColors;
+  const awayColors = match.awayTeam.colors as TeamColors;
+  const homeColor = homeColors.primary;
+  const awayColor = awayColors.primary;
   // Dim the trailing side once a result exists so the eye lands on the winner.
   const homeLead = decided && score[0] > score[1];
   const awayLead = decided && score[1] > score[0];
@@ -58,14 +61,16 @@ export function MatchCard({ match }: { match: MatchWithTeams }) {
           <div className="space-y-2.5">
             <ScoreRow
               name={match.homeTeam.name}
-              color={homeColor}
+              logo={match.homeTeam.logo}
+              colors={homeColors}
               value={score[0]}
               lead={homeLead}
               dim={decided && !homeLead}
             />
             <ScoreRow
               name={match.awayTeam.name}
-              color={awayColor}
+              logo={match.awayTeam.logo}
+              colors={awayColors}
               value={score[1]}
               lead={awayLead}
               dim={decided && !awayLead}
@@ -81,13 +86,15 @@ export function MatchCard({ match }: { match: MatchWithTeams }) {
 
 function ScoreRow({
   name,
-  color,
+  logo,
+  colors,
   value,
   lead,
   dim,
 }: {
   name: string;
-  color: string;
+  logo?: string | null;
+  colors: TeamColors;
   value: number;
   lead: boolean;
   dim: boolean;
@@ -95,7 +102,7 @@ function ScoreRow({
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="flex min-w-0 items-center gap-3">
-        <span className="h-8 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+        <Avatar src={logo} name={name} color={colors} size="sm" shape="square" />
         <span className={`truncate text-[15px] font-semibold ${dim ? 'text-ink-2' : 'text-ink-1'}`}>
           {name}
         </span>

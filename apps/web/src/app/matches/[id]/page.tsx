@@ -4,6 +4,7 @@ import { use } from 'react';
 import Link from 'next/link';
 import { Download, Play, Share2 } from 'lucide-react';
 import { getEventType, getSportConfig } from '@bleachers/sport-engine';
+import type { TeamColors } from '@bleachers/types';
 import { AuthGate } from '@/components/auth-gate';
 import { PageHeader } from '@/components/page-header';
 import { useMatch, useMatchStats, usePlayers } from '@/lib/hooks';
@@ -52,8 +53,10 @@ function MatchDetail({ id }: { id: string }) {
   const config = getSportConfig(match.sport);
   const nameOf = (pid: string | null) =>
     pid ? (players?.find((p) => p.id === pid)?.name ?? 'Player') : '';
-  const homeColor = (match.homeTeam.colors as { primary: string }).primary;
-  const awayColor = (match.awayTeam.colors as { primary: string }).primary;
+  const homeColors = match.homeTeam.colors as TeamColors;
+  const awayColors = match.awayTeam.colors as TeamColors;
+  const homeColor = homeColors.primary;
+  const awayColor = awayColors.primary;
 
   return (
     <>
@@ -62,8 +65,10 @@ function MatchDetail({ id }: { id: string }) {
         <Scoreboard
           homeName={match.homeTeam.name}
           awayName={match.awayTeam.name}
-          homeColor={homeColor}
-          awayColor={awayColor}
+          homeLogo={match.homeTeam.logo}
+          awayLogo={match.awayTeam.logo}
+          homeColors={homeColors}
+          awayColors={awayColors}
           score={stats?.score ?? [0, 0]}
           clockLabel={match.status}
           periodLabel={config.name}
