@@ -12,6 +12,7 @@ import {
   useTeamMemberships,
   useTeams,
 } from '@/lib/hooks';
+import { ApiError } from '@/lib/api';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -20,6 +21,10 @@ import { Input } from '@/components/ui/input';
 import { Select, type SelectOption } from '@/components/ui/select';
 import { EmptyState, Skeleton, Spinner } from '@/components/ui/misc';
 import { QueryErrorState } from '@/components/ui/query-error';
+
+function errorMessage(e: unknown, fallback: string) {
+  return e instanceof ApiError ? e.message : fallback;
+}
 
 /** Compact "add a brand-new player straight onto this roster" form. */
 function NewPlayerForm({ teamId }: { teamId: string }) {
@@ -65,6 +70,11 @@ function NewPlayerForm({ teamId }: { teamId: string }) {
             />
           </div>
         </div>
+        {createPlayer.isError && (
+          <p className="text-negative text-sm">
+            {errorMessage(createPlayer.error, 'Could not add this player — try again')}
+          </p>
+        )}
         <Button type="submit" className="w-full" disabled={!canSubmit || createPlayer.isPending}>
           {createPlayer.isPending ? <Spinner /> : <UserPlus className="h-4 w-4" />} Add player
         </Button>

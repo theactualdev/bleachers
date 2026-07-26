@@ -77,7 +77,7 @@ function CreateMatchFlow() {
                 <Skeleton className="h-16 w-full" />
                 <Skeleton className="h-16 w-full" />
               </div>
-            ) : isError ? (
+            ) : isError && !teams ? (
               <QueryErrorState what="your teams" error={error} onRetry={() => refetch()} />
             ) : !teams || teams.length < 2 ? (
               <div className="space-y-3">
