@@ -36,6 +36,14 @@ const MATCH_ID = '20000000-0000-4000-8000-000000000001';
 async function main(): Promise<void> {
   const userId = await ensureSeedUser();
 
+  // The signup trigger provisions a personal org; resolve it for stamping seeded rows.
+  const membership = await prisma.orgMembership.findFirst({
+    where: { userId },
+    include: { org: true },
+  });
+  if (!membership) throw new Error('Seed user has no org membership — trigger missing?');
+  const orgId = membership.orgId;
+
   const homePlayers = ['Ada Kwei', 'Bola Nnamdi', 'Chidi Okoro', 'Deji Ade', 'Emeka Obi'];
   const awayPlayers = ['Femi Bello', 'Gozie Eze', 'Hakeem Musa', 'Ike Uzo', 'Jide Kolo'];
 
@@ -51,6 +59,7 @@ async function main(): Promise<void> {
       colors: { primary: '#1E90FF', secondary: '#FFFFFF' },
       sport: 'FOOTBALL',
       createdById: userId,
+      organizationId: orgId,
     },
   });
   await prisma.team.upsert({
@@ -62,6 +71,7 @@ async function main(): Promise<void> {
       colors: { primary: '#E23B3B', secondary: '#111111' },
       sport: 'FOOTBALL',
       createdById: userId,
+      organizationId: orgId,
     },
   });
 
@@ -70,7 +80,7 @@ async function main(): Promise<void> {
       await prisma.player.upsert({
         where: { id: ids[i]! },
         update: {},
-        create: { id: ids[i]!, name: names[i]!, createdById: userId },
+        create: { id: ids[i]!, name: names[i]!, createdById: userId, organizationId: orgId },
       });
       await prisma.rosterEntry.upsert({
         where: { teamId_playerId: { teamId, playerId: ids[i]! } },
@@ -95,6 +105,7 @@ async function main(): Promise<void> {
       status: 'LIVE',
       statTier: 'BASIC',
       createdById: userId,
+      organizationId: orgId,
       lineups: {
         create: [
           ...homeIds.map((playerId, i) => ({
