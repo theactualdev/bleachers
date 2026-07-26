@@ -16,7 +16,8 @@ import type {
   Team,
 } from '@bleachers/types';
 import type { SportConfig } from '@bleachers/sport-engine';
-import { apiGet, apiPost } from './api';
+import { apiGet, apiPost, API_URL, ApiError } from './api';
+import { supabase } from './supabase';
 import { useActiveOrgId, useOrgStore } from './org-store';
 
 type MatchWithTeams = Match & { homeTeam: Team; awayTeam: Team };
@@ -37,6 +38,49 @@ export function useMe() {
       const me = await apiGet<Me>('/api/me');
       setMemberships(me.memberships);
       return me;
+    },
+  });
+}
+
+// ── Media ────────────────────────────────────────────────────────────────────
+/**
+ * Uploads an image blob to `/api/media/upload` and resolves the public URL.
+ * Can't reuse `api()` — multipart bodies must NOT set a `Content-Type` header
+ * (the browser attaches the multipart boundary itself) — so this mirrors the
+ * auth/org header pattern from `api.ts` inline.
+ */
+export function useUploadImage() {
+  return useMutation({
+    mutationFn: async (file: Blob): Promise<{ url: string }> => {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      const activeOrgId = useOrgStore.getState().activeOrgId;
+
+      const body = new FormData();
+      body.append('file', file);
+
+      const res = await fetch(`${API_URL}/api/media/upload`, {
+        method: 'POST',
+        body,
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(activeOrgId ? { 'X-Organization-Id': activeOrgId } : {}),
+        },
+      });
+
+      if (!res.ok) {
+        let responseBody: unknown;
+        try {
+          responseBody = await res.json();
+        } catch {
+          responseBody = await res.text().catch(() => undefined);
+        }
+        const message =
+          (responseBody as { message?: string })?.message ?? `Upload failed (${res.status})`;
+        throw new ApiError(res.status, message, responseBody);
+      }
+
+      return (await res.json()) as { url: string };
     },
   });
 }
