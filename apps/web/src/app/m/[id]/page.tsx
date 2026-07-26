@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { getEventType, getSportConfig } from '@bleachers/sport-engine';
 import type { MatchStats, Sport } from '@bleachers/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { API_URL } from '@/lib/api-url';
 
 interface PublicMatch {
   match: { id: string; sport: Sport; status: string; venue: string | null; scheduledAt: string };
