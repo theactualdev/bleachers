@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Mail, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -10,7 +11,8 @@ import { Input, Label } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/misc';
 import { API_URL } from '@/lib/api';
 
-export default function LoginPage() {
+function LoginInner() {
+  const next = useSearchParams().get('next') ?? '/';
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [error, setError] = useState('');
@@ -21,7 +23,7 @@ export default function LoginPage() {
     setError('');
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/` },
+      options: { emailRedirectTo: `${window.location.origin}${next}` },
     });
     if (error) {
       setStatus('error');
@@ -91,7 +93,7 @@ export default function LoginPage() {
                 onClick={() =>
                   supabase.auth.signInWithOAuth({
                     provider: 'google',
-                    options: { redirectTo: `${window.location.origin}/` },
+                    options: { redirectTo: `${window.location.origin}${next}` },
                   })
                 }
               >
@@ -106,5 +108,19 @@ export default function LoginPage() {
       </Card>
       <p className="text-ink-3 text-[11px]">API: {API_URL}</p>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-dvh items-center justify-center">
+          <Spinner className="h-6 w-6" />
+        </div>
+      }
+    >
+      <LoginInner />
+    </Suspense>
   );
 }

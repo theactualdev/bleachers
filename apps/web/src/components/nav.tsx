@@ -16,7 +16,13 @@ const items = [
 export function Nav() {
   const pathname = usePathname();
   // Hide the app nav on public pages and the immersive live-scoring screen.
-  if (pathname.startsWith('/m/') || pathname.endsWith('/live') || pathname === '/login') {
+  if (
+    pathname.startsWith('/m/') ||
+    pathname.startsWith('/o/') ||
+    pathname.startsWith('/join/') ||
+    pathname.endsWith('/live') ||
+    pathname === '/login'
+  ) {
     return null;
   }
 
