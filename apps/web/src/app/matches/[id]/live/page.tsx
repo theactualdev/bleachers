@@ -59,7 +59,7 @@ function LiveScoring({ id }: { id: string }) {
         jersey: l.jerseyNumberOverride,
       }));
 
-  if (isError) {
+  if (isError && !match) {
     return (
       <div className="flex min-h-dvh items-center justify-center px-4">
         <QueryErrorState what="the match" error={error} onRetry={() => refetch()} />

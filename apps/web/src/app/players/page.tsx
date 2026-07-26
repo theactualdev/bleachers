@@ -45,7 +45,7 @@ function PlayersScreen() {
             <Skeleton className="h-[58px] w-full" />
             <Skeleton className="h-[58px] w-full" />
           </div>
-        ) : isError ? (
+        ) : isError && !players ? (
           <QueryErrorState what="players" error={error} onRetry={() => refetch()} />
         ) : players && players.length === 0 ? (
           <EmptyState title="No players yet" hint="Add players to build teams and rosters." />

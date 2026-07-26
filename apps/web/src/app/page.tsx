@@ -37,7 +37,7 @@ function Dashboard() {
             <Skeleton className="h-32 w-full" />
             <Skeleton className="h-32 w-full" />
           </div>
-        ) : isError ? (
+        ) : isError && !matches ? (
           <QueryErrorState what="matches" error={error} onRetry={() => refetch()} />
         ) : matches && matches.length === 0 ? (
           <div className="pt-6">

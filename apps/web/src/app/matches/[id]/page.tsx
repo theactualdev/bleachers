@@ -21,7 +21,7 @@ function MatchDetail({ id }: { id: string }) {
   const { data: stats } = useMatchStats(id);
   const { data: players } = usePlayers();
 
-  if (isError) {
+  if (isError && !match) {
     return (
       <>
         <PageHeader title="Match" />

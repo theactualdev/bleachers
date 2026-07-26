@@ -37,7 +37,7 @@ function PlayerProfile({ id }: { id: string }) {
             <Skeleton className="h-32 w-full" />
             <Skeleton className="h-32 w-full" />
           </div>
-        ) : isError ? (
+        ) : isError && !career ? (
           <QueryErrorState what="career stats" error={error} onRetry={() => refetch()} />
         ) : (
           <>

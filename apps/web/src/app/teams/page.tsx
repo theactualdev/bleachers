@@ -64,7 +64,7 @@ function TeamsScreen() {
             <Skeleton className="h-[60px] w-full" />
             <Skeleton className="h-[60px] w-full" />
           </div>
-        ) : isError ? (
+        ) : isError && !teams ? (
           <QueryErrorState what="teams" error={error} onRetry={() => refetch()} />
         ) : teams && teams.length === 0 ? (
           <EmptyState title="No teams yet" hint="Create a team, then add players to its roster." />

@@ -67,7 +67,7 @@ function TeamProfile({ id }: { id: string }) {
             <Skeleton className="h-[60px] w-full" />
             <Skeleton className="h-[60px] w-full" />
           </div>
-        ) : isError ? (
+        ) : isError && !roster ? (
           <QueryErrorState what="the roster" error={error} onRetry={() => refetch()} />
         ) : roster && roster.length === 0 ? (
           <EmptyState title="Empty roster" hint="Add players above to build this team." />
