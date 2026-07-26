@@ -16,6 +16,13 @@ Supported sports (via configuration, no code): **Football**, **Basketball**, **V
   rules, derived stats, button layout, clock behaviour). Adding a sport = adding a config file.
 - **Offline-first.** IndexedDB event queue, optimistic UI, UUID idempotency keys, background sync.
 
+## Organizations
+
+All data — teams, players, matches — belongs to an organization (a club or league), not to an
+individual user. Membership carries a role: **OWNER**, **SCORER**, or **VIEWER**. Every new
+signup gets a personal org automatically; invite links (`/join/<token>`) add teammates to it or
+to a shared org with the right role. Orgs can opt in to a public read-only page at `/o/<slug>`.
+
 ## Monorepo layout
 
 ```
