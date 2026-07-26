@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import type { AddRosterEntryInput, CreateTeamInput, UpdateTeamInput } from '@bleachers/types';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -85,7 +85,16 @@ export class TeamsService {
   }
 
   async addToRoster(userId: string, teamId: string, input: AddRosterEntryInput) {
-    await this.members.assertMember(userId, await this.orgOf(teamId), 'SCORER');
+    const orgId = await this.orgOf(teamId);
+    await this.members.assertMember(userId, orgId, 'SCORER');
+    const player = await this.prisma.player.findUnique({
+      where: { id: input.playerId },
+      select: { organizationId: true },
+    });
+    if (!player) throw new NotFoundException('Player not found');
+    if (player.organizationId !== orgId) {
+      throw new BadRequestException('Player must belong to the same organization');
+    }
     const entry = await this.prisma.rosterEntry.upsert({
       where: { teamId_playerId: { teamId, playerId: input.playerId } },
       create: {

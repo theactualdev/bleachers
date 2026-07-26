@@ -12,7 +12,10 @@ interface ConnectivityState {
 }
 
 export const useConnectivity = create<ConnectivityState>((set) => ({
-  online: typeof navigator !== 'undefined' ? navigator.onLine : true,
+  online:
+    typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean'
+      ? navigator.onLine
+      : true,
   pending: 0,
   syncing: false,
   setOnline: (online) => set({ online }),

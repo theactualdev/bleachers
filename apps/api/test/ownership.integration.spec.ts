@@ -1,9 +1,10 @@
 import 'dotenv/config';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { TeamsService } from '../src/teams/teams.service';
 import { PlayersService } from '../src/players/players.service';
+import { MatchesService } from '../src/matches/matches.service';
 import { MembershipService } from '../src/orgs/membership.service';
 import { createTestUser, deleteTestUser, getPersonalOrg } from './helpers/auth';
 
@@ -18,6 +19,7 @@ describe('Cross-org isolation on teams/players (integration)', () => {
   const members = new MembershipService(prisma);
   const teams = new TeamsService(prisma, members);
   const players = new PlayersService(prisma, members);
+  const matches = new MatchesService(prisma, members);
 
   let ownerId = '';
   let intruderId = '';
@@ -26,6 +28,7 @@ describe('Cross-org isolation on teams/players (integration)', () => {
   let homeTeamId = '';
   let awayTeamId = '';
   let playerId = '';
+  let intruderPlayerId = '';
 
   beforeAll(async () => {
     await prisma.$connect();
@@ -49,6 +52,11 @@ describe('Cross-org isolation on teams/players (integration)', () => {
 
     const player = await players.create(ownerId, ownerOrg, { name: 'Owned Player' });
     playerId = player.id;
+
+    const intruderPlayer = await players.create(intruderId, intruderOrg, {
+      name: 'Foreign Player',
+    });
+    intruderPlayerId = intruderPlayer.id;
   });
 
   afterAll(async () => {
@@ -58,6 +66,7 @@ describe('Cross-org isolation on teams/players (integration)', () => {
       await prisma.team.deleteMany({ where: { id: { in: teamIds } } });
     }
     if (playerId) await prisma.player.deleteMany({ where: { id: playerId } });
+    if (intruderPlayerId) await prisma.player.deleteMany({ where: { id: intruderPlayerId } });
     await prisma.$disconnect();
     await deleteTestUser(ownerId);
     await deleteTestUser(intruderId);
@@ -89,6 +98,33 @@ describe('Cross-org isolation on teams/players (integration)', () => {
     // Still on the roster afterwards.
     const roster = await teams.getRoster(ownerId, homeTeamId);
     expect(roster.some((r) => r.playerId === playerId)).toBe(true);
+  });
+
+  it('rejects adding a player from another org to the roster', async () => {
+    await expect(
+      teams.addToRoster(ownerId, homeTeamId, { playerId: intruderPlayerId }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('allows the owner to remove a player they added from the roster', async () => {
+    await teams.addToRoster(ownerId, homeTeamId, { playerId });
+    await expect(teams.removeFromRoster(ownerId, homeTeamId, playerId)).resolves.toEqual({
+      removed: true,
+    });
+  });
+
+  it("rejects a match lineup containing another org's player", async () => {
+    await expect(
+      matches.create(ownerId, ownerOrg, {
+        sport: 'FOOTBALL',
+        homeTeamId,
+        awayTeamId,
+        statTier: 'BASIC',
+        startNow: false,
+        homeLineup: [{ playerId: intruderPlayerId, isStarter: true }],
+        awayLineup: [],
+      }),
+    ).rejects.toThrow(BadRequestException);
   });
 
   it('allows the org member (owner) to read the team, player, and roster', async () => {

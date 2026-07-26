@@ -75,6 +75,18 @@ export class MatchesService {
       throw new BadRequestException('Both teams must match the selected sport');
     }
 
+    const lineupPlayerIds = [
+      ...new Set([...input.homeLineup, ...input.awayLineup].map((l) => l.playerId)),
+    ];
+    if (lineupPlayerIds.length > 0) {
+      const owned = await this.prisma.player.count({
+        where: { id: { in: lineupPlayerIds }, organizationId: orgId },
+      });
+      if (owned !== lineupPlayerIds.length) {
+        throw new BadRequestException('All lineup players must belong to the active organization');
+      }
+    }
+
     const scheduledAt = input.scheduledAt ? new Date(input.scheduledAt) : new Date();
 
     const match = await this.prisma.$transaction(async (tx) => {

@@ -12,7 +12,8 @@ import { Spinner } from '@/components/ui/misc';
 import { API_URL } from '@/lib/api';
 
 function LoginInner() {
-  const next = useSearchParams().get('next') ?? '/';
+  const rawNext = useSearchParams().get('next');
+  const next = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/';
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [error, setError] = useState('');
