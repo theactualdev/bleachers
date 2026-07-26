@@ -55,12 +55,7 @@ export default async function PublicOrgPage({ params }: { params: Promise<{ slug
 
       <div className="glass rim flex items-center gap-4 rounded-xl p-5">
         {org.logo ? (
-          // eslint-disable-next-line @next/next/no-img-element -- org.logo may be a data: URI
-          <img
-            src={org.logo}
-            alt=""
-            className="h-14 w-14 shrink-0 rounded-full object-cover"
-          />
+          <img src={org.logo} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover" />
         ) : (
           <div className="glass-strong font-display text-ink-1 flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-xl font-bold">
             {org.name.slice(0, 2).toUpperCase()}

@@ -12,7 +12,7 @@ import { useMe } from '@/lib/hooks';
 import { useActiveOrgId } from '@/lib/org-store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input, Label } from '@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import { Select, type SelectOption } from '@/components/ui/select';
 import { Badge, EmptyState, Skeleton, Spinner } from '@/components/ui/misc';
 import { cn } from '@/lib/utils';
@@ -100,13 +100,13 @@ function Toggle({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        'ease-spring relative h-7 w-12 shrink-0 rounded-pill transition-colors duration-200 disabled:opacity-40',
+        'ease-spring rounded-pill relative h-7 w-12 shrink-0 transition-colors duration-200 disabled:opacity-40',
         checked ? 'bg-brand' : 'glass',
       )}
     >
       <span
         className={cn(
-          'ease-spring absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-button transition-transform duration-200',
+          'ease-spring shadow-button absolute top-0.5 h-6 w-6 rounded-full bg-white transition-transform duration-200',
           checked ? 'translate-x-[22px]' : 'translate-x-0.5',
         )}
       />
@@ -163,7 +163,8 @@ function OrgSettingsScreen() {
   }, [active?.orgName]);
 
   const renameOrg = useMutation({
-    mutationFn: (newName: string) => apiPatch<Organization>(`/api/orgs/${orgId}`, { name: newName }),
+    mutationFn: (newName: string) =>
+      apiPatch<Organization>(`/api/orgs/${orgId}`, { name: newName }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] }),
   });
 
@@ -365,7 +366,10 @@ function OrgSettingsScreen() {
                 )}
                 {(changeRole.isError || removeMember.isError) && (
                   <p className="text-negative text-sm">
-                    {errorMessage(changeRole.error ?? removeMember.error, 'Could not update member')}
+                    {errorMessage(
+                      changeRole.error ?? removeMember.error,
+                      'Could not update member',
+                    )}
                   </p>
                 )}
               </CardContent>
