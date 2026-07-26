@@ -50,33 +50,51 @@ export class OrgsService {
     });
   }
 
-  private async assertNotLastOwner(orgId: string, targetUserId: string): Promise<void> {
-    const target = await this.prisma.orgMembership.findUnique({
-      where: { orgId_userId: { orgId, userId: targetUserId } },
-    });
-    if (!target) throw new NotFoundException('Membership not found');
-    if (target.role !== 'OWNER') return;
-    const owners = await this.prisma.orgMembership.count({ where: { orgId, role: 'OWNER' } });
-    if (owners <= 1) throw new BadRequestException('An organization must keep at least one owner');
-  }
-
   async changeRole(userId: string, orgId: string, targetUserId: string, role: OrgRole) {
     await this.members.assertMember(userId, orgId, 'OWNER');
-    if (role !== 'OWNER') await this.assertNotLastOwner(orgId, targetUserId);
-    return this.prisma.orgMembership.update({
-      where: { orgId_userId: { orgId, userId: targetUserId } },
-      data: { role },
-    });
+    return this.prisma.$transaction(
+      async (tx) => {
+        const target = await tx.orgMembership.findUnique({
+          where: { orgId_userId: { orgId, userId: targetUserId } },
+        });
+        if (!target) throw new NotFoundException('Membership not found');
+        if (target.role === 'OWNER' && role !== 'OWNER') {
+          const owners = await tx.orgMembership.count({ where: { orgId, role: 'OWNER' } });
+          if (owners <= 1) {
+            throw new BadRequestException('An organization must keep at least one owner');
+          }
+        }
+        return tx.orgMembership.update({
+          where: { orgId_userId: { orgId, userId: targetUserId } },
+          data: { role },
+        });
+      },
+      { isolationLevel: 'Serializable' },
+    );
   }
 
   async removeMember(userId: string, orgId: string, targetUserId: string) {
     // Owners can remove anyone; anyone can remove themselves (leave).
     if (userId !== targetUserId) await this.members.assertMember(userId, orgId, 'OWNER');
     else await this.members.assertMember(userId, orgId, 'VIEWER');
-    await this.assertNotLastOwner(orgId, targetUserId);
-    await this.prisma.orgMembership.delete({
-      where: { orgId_userId: { orgId, userId: targetUserId } },
-    });
+    await this.prisma.$transaction(
+      async (tx) => {
+        const target = await tx.orgMembership.findUnique({
+          where: { orgId_userId: { orgId, userId: targetUserId } },
+        });
+        if (!target) throw new NotFoundException('Membership not found');
+        if (target.role === 'OWNER') {
+          const owners = await tx.orgMembership.count({ where: { orgId, role: 'OWNER' } });
+          if (owners <= 1) {
+            throw new BadRequestException('An organization must keep at least one owner');
+          }
+        }
+        await tx.orgMembership.delete({
+          where: { orgId_userId: { orgId, userId: targetUserId } },
+        });
+      },
+      { isolationLevel: 'Serializable' },
+    );
     return { removed: true };
   }
 
