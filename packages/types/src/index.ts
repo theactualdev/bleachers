@@ -5,3 +5,4 @@ export * from './team.js';
 export * from './match.js';
 export * from './event.js';
 export * from './stats.js';
+export * from './org.js';

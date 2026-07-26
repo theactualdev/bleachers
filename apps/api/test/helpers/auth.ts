@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
+import { PrismaClient } from '@prisma/client';
 
 const admin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
   auth: { autoRefreshToken: false, persistSession: false },
@@ -41,4 +42,16 @@ export async function deleteTestUser(id: string): Promise<void> {
     const { error } = await admin.auth.admin.deleteUser(id);
     if (error) throw error;
   });
+}
+
+const prismaForHelpers = new PrismaClient();
+
+/** The personal org auto-created for a test user by the signup trigger. */
+export async function getPersonalOrg(userId: string): Promise<string> {
+  const m = await prismaForHelpers.orgMembership.findFirst({
+    where: { userId, org: { isPersonal: true } },
+    select: { orgId: true },
+  });
+  if (!m) throw new Error(`No personal org for user ${userId} — signup trigger broken?`);
+  return m.orgId;
 }

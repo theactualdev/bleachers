@@ -9,12 +9,14 @@ import { StatisticsModule } from './statistics/statistics.module.js';
 import { SharingModule } from './sharing/sharing.module.js';
 import { RealtimeModule } from './realtime/realtime.module.js';
 import { SportModule } from './sport/sport.module.js';
+import { OrgsModule } from './orgs/orgs.module.js';
 import { HealthController } from './health.controller.js';
 
 @Module({
   imports: [
     PrismaModule,
     AuthModule,
+    OrgsModule,
     PlayersModule,
     TeamsModule,
     MatchesModule,
