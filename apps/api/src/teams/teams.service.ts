@@ -1,5 +1,12 @@
+import { randomUUID } from 'node:crypto';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import type { AddRosterEntryInput, CreateTeamInput, UpdateTeamInput } from '@bleachers/types';
+import type {
+  AddRosterEntryInput,
+  CreateTeamInput,
+  CreateTeamPlayerInput,
+  RegisterTeamInput,
+  UpdateTeamInput,
+} from '@bleachers/types';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MembershipService } from '../orgs/membership.service.js';
@@ -52,6 +59,87 @@ export class TeamsService {
       },
     });
     return toTeam(team);
+  }
+
+  /**
+   * Composite registration: creates the team, its team-born players, and their
+   * roster entries in one transaction. Players have no standalone existence
+   * outside a team — they are always created as part of registering onto one.
+   *
+   * Player/roster ids are generated client-side and rows are batch-inserted so the
+   * transaction does a constant number of round trips regardless of roster size
+   * (up to 40) — sequential per-row round trips were blowing past Prisma's default
+   * interactive-transaction timeout against the hosted DB's latency.
+   */
+  async register(userId: string, orgId: string, input: RegisterTeamInput) {
+    await this.members.assertMember(userId, orgId, 'SCORER');
+    const result = await this.prisma.$transaction(async (tx) => {
+      const team = await tx.team.create({
+        data: {
+          name: input.name,
+          colors: input.colors as unknown as Prisma.InputJsonValue,
+          logo: input.logo ?? null,
+          sport: 'FOOTBALL',
+          organizationId: orgId,
+          createdById: userId,
+        },
+      });
+
+      if (input.players.length === 0) {
+        return { team, roster: [] };
+      }
+
+      const rows = input.players.map((p) => ({ playerId: randomUUID(), input: p }));
+      await tx.player.createMany({
+        data: rows.map((r) => ({
+          id: r.playerId,
+          name: r.input.name,
+          photo: r.input.photo ?? null,
+          dateOfBirth: null,
+          organizationId: orgId,
+          createdById: userId,
+        })),
+      });
+      await tx.rosterEntry.createMany({
+        data: rows.map((r) => ({
+          teamId: team.id,
+          playerId: r.playerId,
+          jerseyNumber: r.input.jerseyNumber ?? null,
+        })),
+      });
+      const roster = await tx.rosterEntry.findMany({
+        where: { teamId: team.id },
+        include: { player: true },
+        orderBy: { createdAt: 'asc' },
+      });
+      return { team, roster };
+    });
+    return {
+      team: toTeam(result.team),
+      roster: result.roster.map((e) => ({ ...toRosterEntry(e), player: toPlayer(e.player) })),
+    };
+  }
+
+  /** Adds a team-born player: creates the player and its roster entry atomically. */
+  async addPlayer(userId: string, teamId: string, input: CreateTeamPlayerInput) {
+    const orgId = await this.orgOf(teamId);
+    await this.members.assertMember(userId, orgId, 'SCORER');
+    const entry = await this.prisma.$transaction(async (tx) => {
+      const player = await tx.player.create({
+        data: {
+          name: input.name,
+          photo: input.photo ?? null,
+          dateOfBirth: null,
+          organizationId: orgId,
+          createdById: userId,
+        },
+      });
+      return tx.rosterEntry.create({
+        data: { teamId, playerId: player.id, jerseyNumber: input.jerseyNumber ?? null },
+        include: { player: true },
+      });
+    });
+    return { ...toRosterEntry(entry), player: toPlayer(entry.player) };
   }
 
   async update(userId: string, id: string, input: UpdateTeamInput) {

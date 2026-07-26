@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { CreatePlayerInput, UpdatePlayerInput } from '@bleachers/types';
+import type { UpdatePlayerInput } from '@bleachers/types';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MembershipService } from '../orgs/membership.service.js';
 import { toPlayer } from '../common/serialize.js';
@@ -24,20 +24,6 @@ export class PlayersService {
     const player = await this.prisma.player.findUnique({ where: { id } });
     if (!player) throw new NotFoundException('Player not found');
     await this.members.assertMember(userId, player.organizationId, 'VIEWER');
-    return toPlayer(player);
-  }
-
-  async create(userId: string, orgId: string, input: CreatePlayerInput) {
-    await this.members.assertMember(userId, orgId, 'SCORER');
-    const player = await this.prisma.player.create({
-      data: {
-        name: input.name,
-        dateOfBirth: input.dateOfBirth ?? null,
-        photo: input.photo ?? null,
-        organizationId: orgId,
-        createdById: userId,
-      },
-    });
     return toPlayer(player);
   }
 

@@ -1,10 +1,5 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
-import {
-  CreatePlayerSchema,
-  UpdatePlayerSchema,
-  type CreatePlayerInput,
-  type UpdatePlayerInput,
-} from '@bleachers/types';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch } from '@nestjs/common';
+import { UpdatePlayerSchema, type UpdatePlayerInput } from '@bleachers/types';
 import { CurrentUser } from '../auth/auth.decorators.js';
 import type { AuthUser } from '../auth/auth.types.js';
 import { CurrentOrgId } from '../orgs/org.decorators.js';
@@ -23,15 +18,6 @@ export class PlayersController {
   @Get(':id')
   get(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.players.get(user.id, id);
-  }
-
-  @Post()
-  create(
-    @CurrentUser() user: AuthUser,
-    @CurrentOrgId() orgId: string,
-    @Body(new ZodValidationPipe(CreatePlayerSchema)) body: CreatePlayerInput,
-  ) {
-    return this.players.create(user.id, orgId, body);
   }
 
   @Patch(':id')

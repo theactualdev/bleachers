@@ -50,11 +50,16 @@ describe('Cross-org isolation on teams/players (integration)', () => {
     homeTeamId = home.id;
     awayTeamId = away.id;
 
-    const player = await players.create(ownerId, ownerOrg, { name: 'Owned Player' });
+    // Players have no standalone creation path anymore — they are always
+    // team-born (via TeamsService.register/addPlayer). Fixture players here
+    // are inserted directly since this suite only exercises reads/updates.
+    const player = await prisma.player.create({
+      data: { name: 'Owned Player', organizationId: ownerOrg, createdById: ownerId },
+    });
     playerId = player.id;
 
-    const intruderPlayer = await players.create(intruderId, intruderOrg, {
-      name: 'Foreign Player',
+    const intruderPlayer = await prisma.player.create({
+      data: { name: 'Foreign Player', organizationId: intruderOrg, createdById: intruderId },
     });
     intruderPlayerId = intruderPlayer.id;
   });

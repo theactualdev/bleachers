@@ -1,10 +1,14 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import {
   AddRosterEntrySchema,
+  CreateTeamPlayerSchema,
   CreateTeamSchema,
+  RegisterTeamSchema,
   UpdateTeamSchema,
   type AddRosterEntryInput,
   type CreateTeamInput,
+  type CreateTeamPlayerInput,
+  type RegisterTeamInput,
   type UpdateTeamInput,
 } from '@bleachers/types';
 import { CurrentUser } from '../auth/auth.decorators.js';
@@ -22,6 +26,17 @@ export class TeamsController {
     return this.teams.list(user.id, orgId);
   }
 
+  // Declared before the `:id`-style param routes below so this literal segment
+  // is never swallowed by a param route matching 'register' as an id.
+  @Post('register')
+  register(
+    @CurrentUser() user: AuthUser,
+    @CurrentOrgId() orgId: string,
+    @Body(new ZodValidationPipe(RegisterTeamSchema)) body: RegisterTeamInput,
+  ) {
+    return this.teams.register(user.id, orgId, body);
+  }
+
   @Get(':id')
   get(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.teams.get(user.id, id);
@@ -34,6 +49,15 @@ export class TeamsController {
     @Body(new ZodValidationPipe(CreateTeamSchema)) body: CreateTeamInput,
   ) {
     return this.teams.create(user.id, orgId, body);
+  }
+
+  @Post(':id/players')
+  addPlayer(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodValidationPipe(CreateTeamPlayerSchema)) body: CreateTeamPlayerInput,
+  ) {
+    return this.teams.addPlayer(user.id, id, body);
   }
 
   @Patch(':id')
