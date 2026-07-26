@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { API_URL } from './api-url';
+import { useOrgStore } from './org-store';
 
 export { API_URL };
 
@@ -21,12 +22,14 @@ export class ApiError extends Error {
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
+  const activeOrgId = useOrgStore.getState().activeOrgId;
 
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(activeOrgId ? { 'X-Organization-Id': activeOrgId } : {}),
       ...(init.headers ?? {}),
     },
   });
