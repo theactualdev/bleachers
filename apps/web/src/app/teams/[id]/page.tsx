@@ -7,11 +7,12 @@ import { useAddToRoster, usePlayers, useRoster, useTeamMemberships, useTeams } f
 import { Card } from '@/components/ui/card';
 import { Select, type SelectOption } from '@/components/ui/select';
 import { EmptyState, Skeleton } from '@/components/ui/misc';
+import { QueryErrorState } from '@/components/ui/query-error';
 
 function TeamProfile({ id }: { id: string }) {
   const { data: teams } = useTeams();
   const team = teams?.find((t) => t.id === id);
-  const { data: roster, isLoading } = useRoster(id);
+  const { data: roster, isLoading, isError, error, refetch } = useRoster(id);
   const { data: players } = usePlayers();
   const memberships = useTeamMemberships();
   const add = useAddToRoster(id);
@@ -66,6 +67,8 @@ function TeamProfile({ id }: { id: string }) {
             <Skeleton className="h-[60px] w-full" />
             <Skeleton className="h-[60px] w-full" />
           </div>
+        ) : isError ? (
+          <QueryErrorState what="the roster" error={error} onRetry={() => refetch()} />
         ) : roster && roster.length === 0 ? (
           <EmptyState title="Empty roster" hint="Add players above to build this team." />
         ) : (

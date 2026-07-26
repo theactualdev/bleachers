@@ -10,11 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { EmptyState, Skeleton, Spinner } from '@/components/ui/misc';
+import { QueryErrorState } from '@/components/ui/query-error';
 
 const COLORS = ['#1E90FF', '#E23B3B', '#22C55E', '#F59E0B', '#8B5CF6', '#111827'];
 
 function TeamsScreen() {
-  const { data: teams, isLoading } = useTeams();
+  const { data: teams, isLoading, isError, error, refetch } = useTeams();
   const create = useCreateTeam();
   const [name, setName] = useState('');
   const [color, setColor] = useState(COLORS[0]!);
@@ -63,6 +64,8 @@ function TeamsScreen() {
             <Skeleton className="h-[60px] w-full" />
             <Skeleton className="h-[60px] w-full" />
           </div>
+        ) : isError ? (
+          <QueryErrorState what="teams" error={error} onRetry={() => refetch()} />
         ) : teams && teams.length === 0 ? (
           <EmptyState title="No teams yet" hint="Create a team, then add players to its roster." />
         ) : (

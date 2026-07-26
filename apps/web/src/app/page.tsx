@@ -9,9 +9,10 @@ import { MatchCard } from '@/components/match-card';
 import { useMatches } from '@/lib/hooks';
 import { Button } from '@/components/ui/button';
 import { EmptyState, Skeleton } from '@/components/ui/misc';
+import { QueryErrorState } from '@/components/ui/query-error';
 
 function Dashboard() {
-  const { data: matches, isLoading } = useMatches();
+  const { data: matches, isLoading, isError, error, refetch } = useMatches();
   const live = matches?.filter((m) => m.status === 'LIVE') ?? [];
   const rest = matches?.filter((m) => m.status !== 'LIVE') ?? [];
 
@@ -36,6 +37,8 @@ function Dashboard() {
             <Skeleton className="h-32 w-full" />
             <Skeleton className="h-32 w-full" />
           </div>
+        ) : isError ? (
+          <QueryErrorState what="matches" error={error} onRetry={() => refetch()} />
         ) : matches && matches.length === 0 ? (
           <div className="pt-6">
             <EmptyState

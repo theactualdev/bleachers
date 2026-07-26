@@ -12,13 +12,25 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/misc';
 import { StatGrid } from '@/components/stat-grid';
+import { QueryErrorState } from '@/components/ui/query-error';
 import { API_URL } from '@/lib/api';
 import { formatMinute } from '@/lib/utils';
 
 function MatchDetail({ id }: { id: string }) {
-  const { data: match, isLoading } = useMatch(id);
+  const { data: match, isLoading, isError, error, refetch } = useMatch(id);
   const { data: stats } = useMatchStats(id);
   const { data: players } = usePlayers();
+
+  if (isError) {
+    return (
+      <>
+        <PageHeader title="Match" />
+        <div className="px-4 py-2">
+          <QueryErrorState what="the match" error={error} onRetry={() => refetch()} />
+        </div>
+      </>
+    );
+  }
 
   if (isLoading || !match) {
     return (

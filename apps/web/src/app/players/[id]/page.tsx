@@ -7,11 +7,12 @@ import { usePlayerCareer, usePlayers } from '@/lib/hooks';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/misc';
 import { StatGrid } from '@/components/stat-grid';
+import { QueryErrorState } from '@/components/ui/query-error';
 
 function PlayerProfile({ id }: { id: string }) {
   const { data: players } = usePlayers();
   const player = players?.find((p) => p.id === id);
-  const { data: career, isLoading } = usePlayerCareer(id);
+  const { data: career, isLoading, isError, error, refetch } = usePlayerCareer(id);
 
   return (
     <>
@@ -36,6 +37,8 @@ function PlayerProfile({ id }: { id: string }) {
             <Skeleton className="h-32 w-full" />
             <Skeleton className="h-32 w-full" />
           </div>
+        ) : isError ? (
+          <QueryErrorState what="career stats" error={error} onRetry={() => refetch()} />
         ) : (
           <>
             <Card>

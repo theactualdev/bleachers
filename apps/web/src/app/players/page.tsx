@@ -10,9 +10,10 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { EmptyState, Skeleton, Spinner } from '@/components/ui/misc';
+import { QueryErrorState } from '@/components/ui/query-error';
 
 function PlayersScreen() {
-  const { data: players, isLoading } = usePlayers();
+  const { data: players, isLoading, isError, error, refetch } = usePlayers();
   const create = useCreatePlayer();
   const [name, setName] = useState('');
 
@@ -44,6 +45,8 @@ function PlayersScreen() {
             <Skeleton className="h-[58px] w-full" />
             <Skeleton className="h-[58px] w-full" />
           </div>
+        ) : isError ? (
+          <QueryErrorState what="players" error={error} onRetry={() => refetch()} />
         ) : players && players.length === 0 ? (
           <EmptyState title="No players yet" hint="Add players to build teams and rosters." />
         ) : (

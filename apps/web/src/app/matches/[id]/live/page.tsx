@@ -14,6 +14,7 @@ import { EventPicker } from '@/components/scoring/event-picker';
 import { ChainDialog, type ChainPlayer } from '@/components/scoring/chain-dialog';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/misc';
+import { QueryErrorState } from '@/components/ui/query-error';
 import { cn, formatClock, formatMinute } from '@/lib/utils';
 
 interface Selection {
@@ -23,7 +24,7 @@ interface Selection {
 }
 
 function LiveScoring({ id }: { id: string }) {
-  const { data: match, isLoading } = useMatch(id);
+  const { data: match, isLoading, isError, error, refetch } = useMatch(id);
   const { data: players } = usePlayers();
   const sport = match?.sport ?? 'FOOTBALL';
   const tier = match?.statTier ?? 'BASIC';
@@ -57,6 +58,14 @@ function LiveScoring({ id }: { id: string }) {
         name: nameOf(l.playerId),
         jersey: l.jerseyNumberOverride,
       }));
+
+  if (isError) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center px-4">
+        <QueryErrorState what="the match" error={error} onRetry={() => refetch()} />
+      </div>
+    );
+  }
 
   if (isLoading || !match) {
     return (
