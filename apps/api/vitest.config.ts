@@ -10,6 +10,13 @@ export default defineConfig({
     root: '.',
     testTimeout: 30_000,
     hookTimeout: 30_000,
+    // The integration specs all talk to one hosted Supabase project. Running the
+    // files in parallel opened a Prisma pool per file and tripped pooler limits
+    // ("Can't reach database server"), so run them one at a time.
+    fileParallelism: false,
+    // The hosted platform has intermittent auth/DB blips; one retry keeps a green
+    // suite green without masking real, reproducible failures.
+    retry: 2,
   },
   plugins: [swc.vite()],
 });
