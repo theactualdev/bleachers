@@ -13,7 +13,7 @@ async function bootstrap(): Promise<void> {
     origin: env.webOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Organization-Id'],
   });
 
   app.setGlobalPrefix('api', { exclude: ['health'] });

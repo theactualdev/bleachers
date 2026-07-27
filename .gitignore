@@ -23,6 +23,7 @@ coverage/
 playwright-report/
 test-results/
 .nyc_output/
+apps/web/tests-e2e/.auth/
 
 # Prisma
 apps/api/prisma/*.db
