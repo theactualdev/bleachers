@@ -4,13 +4,19 @@
     {
       "name": "web",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@bleachers/web", "dev"],
+      "runtimeArgs": [
+        "--filter",
+        "@bleachers/web",
+        "dev"
+      ],
       "port": 3000
     },
     {
       "name": "stack",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev"],
+      "runtimeArgs": [
+        "dev"
+      ],
       "port": 3000
     },
     {
@@ -27,6 +33,20 @@
       "name": "screens-preview",
       "url": "http://localhost:4601",
       "port": 4601
+    },
+    {
+      "name": "web-alt",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@bleachers/web",
+        "exec",
+        "next",
+        "dev",
+        "-p",
+        "3007"
+      ],
+      "port": 3007
     }
   ]
 }

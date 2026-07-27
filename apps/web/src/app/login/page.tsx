@@ -1,10 +1,10 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Mail, CheckCircle2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { fetchEnabledProviders, supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input, Label } from '@/components/ui/input';
@@ -17,6 +17,25 @@ function LoginInner() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [error, setError] = useState('');
+  const [googlePending, setGooglePending] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+
+  // Only offer Google once we know the project has it configured (see
+  // fetchEnabledProviders: an unconfigured provider strands the user on a JSON
+  // error page rather than failing client-side).
+  useEffect(() => {
+    let active = true;
+    fetchEnabledProviders()
+      .then((providers) => {
+        if (active) setGoogleEnabled(providers.google === true);
+      })
+      .catch(() => {
+        /* Leave the button hidden; the magic link always works. */
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function sendMagicLink(e: React.FormEvent) {
     e.preventDefault();
@@ -32,6 +51,29 @@ function LoginInner() {
     } else {
       setStatus('sent');
     }
+  }
+
+  /**
+   * `signInWithOAuth` resolves with an `error` rather than throwing (and only
+   * redirects on success), so an unconfigured provider fails silently unless we
+   * check it. Surface it instead of leaving the button looking dead.
+   */
+  async function signInWithGoogle() {
+    setGooglePending(true);
+    setError('');
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}${next}` },
+    });
+    if (error) {
+      setGooglePending(false);
+      setError(
+        /not enabled|unsupported provider/i.test(error.message)
+          ? 'Google sign-in isn’t available yet — use the magic link above.'
+          : (error.message ?? 'Could not start Google sign-in'),
+      );
+    }
+    // On success the browser navigates to Google; leave the button busy.
   }
 
   return (
@@ -82,27 +124,25 @@ function LoginInner() {
                 {status === 'sending' ? <Spinner /> : <Mail className="h-4 w-4" />}
                 Send magic link
               </Button>
-              <div className="flex items-center gap-3 py-1">
-                <span className="bg-hairline h-px flex-1" />
-                <span className="text-ink-3 text-eyebrow">or</span>
-                <span className="bg-hairline h-px flex-1" />
-              </div>
-              <Button
-                type="button"
-                variant="glass"
-                className="w-full"
-                onClick={() =>
-                  supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: { redirectTo: `${window.location.origin}${next}` },
-                  })
-                }
-              >
-                Continue with Google
-              </Button>
-              <p className="text-ink-3 text-center text-[11px]">
-                Google sign-in must be enabled in Supabase Auth.
-              </p>
+              {googleEnabled && (
+                <>
+                  <div className="flex items-center gap-3 py-1">
+                    <span className="bg-hairline h-px flex-1" />
+                    <span className="text-ink-3 text-eyebrow">or</span>
+                    <span className="bg-hairline h-px flex-1" />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="glass"
+                    className="w-full"
+                    disabled={googlePending}
+                    onClick={() => void signInWithGoogle()}
+                  >
+                    {googlePending && <Spinner />}
+                    Continue with Google
+                  </Button>
+                </>
+              )}
             </form>
           )}
         </CardContent>
