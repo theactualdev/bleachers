@@ -37,14 +37,22 @@ async function main() {
     page++;
   }
   console.log(`Deleting ${targets.length} orphaned test users…`);
+  // One stubborn account (already gone, or a platform blip) must not abort the sweep.
+  let deleted = 0;
+  const failures: string[] = [];
   for (const t of targets) {
-    await withRetry(async () => {
-      const { error } = await admin.auth.admin.deleteUser(t.id);
-      if (error) throw error;
-    });
-    console.log(`  deleted ${t.email}`);
+    try {
+      await withRetry(async () => {
+        const { error } = await admin.auth.admin.deleteUser(t.id);
+        if (error && error.status !== 404) throw error;
+      });
+      deleted++;
+    } catch (e) {
+      failures.push(`${t.email}: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
-  console.log('✅ cleanup complete');
+  console.log(`✅ cleanup complete — ${deleted} deleted, ${failures.length} failed`);
+  for (const f of failures) console.warn(`  ! ${f}`);
 }
 
 main().catch((e) => {
