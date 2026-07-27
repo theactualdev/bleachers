@@ -14,19 +14,38 @@ const admin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVI
 
 const SEED_EMAIL = process.env.SEED_USER_EMAIL ?? 'olayinkacodes@gmail.com';
 
-/** Create-or-find the seed auth user; the DB trigger creates its profile row. */
+/**
+ * Create-or-find the seed auth user; the DB trigger creates its profile row.
+ *
+ * The profile table is the lookup of record: `admin.listUsers()` paginates (50 per
+ * page by default), so scanning it misses the seed user once other accounts pile up
+ * and the create below then fails with `email_exists`.
+ */
 async function ensureSeedUser(): Promise<string> {
-  const { data: list, error: listErr } = await admin.auth.admin.listUsers();
-  if (listErr) throw listErr;
-  const existing = list.users.find((u) => u.email === SEED_EMAIL);
-  if (existing) return existing.id;
+  const profile = await prisma.profile.findUnique({
+    where: { email: SEED_EMAIL },
+    select: { id: true },
+  });
+  if (profile) return profile.id;
+
   const { data, error } = await admin.auth.admin.createUser({
     email: SEED_EMAIL,
     email_confirm: true,
     user_metadata: { name: 'Demo' },
   });
-  if (error) throw error;
-  return data.user.id;
+  if (!error) return data.user.id;
+
+  // The auth user exists but has no profile row (e.g. created before the trigger
+  // landed). Page through the admin list to recover its id.
+  if (error.code !== 'email_exists') throw error;
+  for (let page = 1; page <= 20; page++) {
+    const { data: list, error: listErr } = await admin.auth.admin.listUsers({ page, perPage: 100 });
+    if (listErr) throw listErr;
+    const found = list.users.find((u) => u.email === SEED_EMAIL);
+    if (found) return found.id;
+    if (list.users.length < 100) break;
+  }
+  throw new Error(`Seed user ${SEED_EMAIL} exists in auth but could not be located`);
 }
 
 const HOME_TEAM_ID = '10000000-0000-4000-8000-000000000001';
