@@ -32,8 +32,19 @@ export default async function globalTeardown() {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  await withRetry(async () => {
-    const { error } = await admin.auth.admin.deleteUser(id);
-    if (error) throw error;
-  });
+  // Best-effort: a platform-side deleteUser outage must not fail a green e2e run.
+  // Orphaned *@bleachers.test users are swept by apps/api/scripts/cleanup-test-users.ts.
+  try {
+    await withRetry(async () => {
+      const { error } = await admin.auth.admin.deleteUser(id);
+      if (error) throw error;
+    });
+  } catch (e) {
+    console.warn(
+      `e2e teardown: could not delete test user ${id} — leaving for the cleanup sweep.`,
+      e instanceof Error ? e.message : e,
+    );
+  } finally {
+    fs.rmSync(META_FILE, { force: true });
+  }
 }

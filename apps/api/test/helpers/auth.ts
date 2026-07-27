@@ -36,12 +36,25 @@ export async function createTestUser(): Promise<string> {
   });
 }
 
+/**
+ * Best-effort cleanup: the hosted admin deleteUser endpoint has shown sustained
+ * outages that would otherwise fail whole suites from `afterAll` even when every
+ * test passed. Assertions live in tests; orphaned `*@bleachers.test` users are
+ * hygiene, swept by `scripts/cleanup-test-users.ts` — so never throw from here.
+ */
 export async function deleteTestUser(id: string): Promise<void> {
   if (!id) return;
-  await withRetry(async () => {
-    const { error } = await admin.auth.admin.deleteUser(id);
-    if (error) throw error;
-  });
+  try {
+    await withRetry(async () => {
+      const { error } = await admin.auth.admin.deleteUser(id);
+      if (error) throw error;
+    });
+  } catch (e) {
+    console.warn(
+      `deleteTestUser: could not delete ${id} (platform issue?) — leaving for the cleanup sweep.`,
+      e instanceof Error ? e.message : e,
+    );
+  }
 }
 
 const prismaForHelpers = new PrismaClient();
