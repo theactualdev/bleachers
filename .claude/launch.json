@@ -47,6 +47,11 @@
         "3007"
       ],
       "port": 3007
+    },
+    {
+      "name": "mail-preview",
+      "url": "http://localhost:4610",
+      "port": 4610
     }
   ]
 }

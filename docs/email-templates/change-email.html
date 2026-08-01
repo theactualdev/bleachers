@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en" style="color-scheme: dark; supported-color-schemes: dark;">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="supported-color-schemes" content="dark" />
+    <title>Confirm your new email</title>
+    <!--[if mso]>
+      <style>
+        body, table, td, a { font-family: Arial, sans-serif !important; }
+      </style>
+    <![endif]-->
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      background-color: #0c0a08;
+      -webkit-font-smoothing: antialiased;
+    "
+  >
+    <div
+      style="
+        display: none;
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        mso-hide: all;
+        font-size: 1px;
+        line-height: 1px;
+        color: #0c0a08;
+      "
+    >
+      Confirm the email change on your Bleachers account. &#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;
+    </div>
+
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      border="0"
+      style="background-color: #0c0a08"
+    >
+      <tr>
+        <td align="center" style="padding: 40px 16px">
+          <table
+            role="presentation"
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="
+              max-width: 480px;
+              background-color: #15120e;
+              border: 1px solid #2b2520;
+              border-radius: 24px;
+            "
+          >
+            <tr>
+              <td style="padding: 40px 32px 32px 32px" align="center">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td
+                      align="center"
+                      valign="middle"
+                      width="64"
+                      height="64"
+                      bgcolor="#ffae35"
+                      style="
+                        width: 64px;
+                        height: 64px;
+                        border-radius: 20px;
+                        font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+                        font-size: 38px;
+                        font-weight: 700;
+                        color: #1a1206;
+                        line-height: 64px;
+                      "
+                    >
+                      B
+                    </td>
+                  </tr>
+                </table>
+
+                <p
+                  style="
+                    margin: 18px 0 0 0;
+                    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+                    font-size: 26px;
+                    font-weight: 700;
+                    letter-spacing: 0.02em;
+                    text-transform: uppercase;
+                    color: #f7f5f1;
+                  "
+                >
+                  Bleachers
+                </p>
+
+                <p
+                  style="
+                    margin: 26px 0 0 0;
+                    font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+                      sans-serif;
+                    font-size: 19px;
+                    font-weight: 600;
+                    color: #f7f5f1;
+                  "
+                >
+                  Confirm your new email
+                </p>
+
+                <p
+                  style="
+                    margin: 10px 0 0 0;
+                    font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+                      sans-serif;
+                    font-size: 15px;
+                    line-height: 23px;
+                    color: #a8a49d;
+                  "
+                >
+                  Confirm the change and you'll sign in with the new address from now on.
+                </p>
+
+                <!-- Old → new -->
+                <table
+                  role="presentation"
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  border="0"
+                  style="
+                    margin: 22px 0 0 0;
+                    background-color: #100e0b;
+                    border: 1px solid #2b2520;
+                    border-radius: 14px;
+                  "
+                >
+                  <tr>
+                    <td align="center" style="padding: 14px 16px">
+                      <p
+                        style="
+                          margin: 0;
+                          font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+                            sans-serif;
+                          font-size: 13px;
+                          line-height: 20px;
+                          color: #6e6a64;
+                        "
+                      >
+                        {{ .Email }}
+                      </p>
+                      <p
+                        style="
+                          margin: 4px 0;
+                          font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+                            sans-serif;
+                          font-size: 13px;
+                          color: #ffae35;
+                        "
+                      >
+                        &#8595;
+                      </p>
+                      <p
+                        style="
+                          margin: 0;
+                          font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+                            sans-serif;
+                          font-size: 14px;
+                          font-weight: 600;
+                          line-height: 21px;
+                          color: #f7f5f1;
+                        "
+                      >
+                        {{ .NewEmail }}
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+
+                <table
+                  role="presentation"
+                  cellpadding="0"
+                  cellspacing="0"
+                  border="0"
+                  style="margin: 24px auto 0 auto"
+                >
+                  <tr>
+                    <td align="center" bgcolor="#ffae35" style="border-radius: 14px">
+                      <a
+                        href="{{ .ConfirmationURL }}"
+                        target="_blank"
+                        style="
+                          display: inline-block;
+                          padding: 15px 34px;
+                          font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+                            sans-serif;
+                          font-size: 16px;
+                          font-weight: 700;
+                          color: #1a1206;
+                          text-decoration: none;
+                          border-radius: 14px;
+                        "
+                        >Confirm the change</a
+                      >
+                    </td>
+                  </tr>
+                </table>
+
+                <p
+                  style="
+                    margin: 22px 0 0 0;
+                    font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+                      sans-serif;
+                    font-size: 13px;
+                    line-height: 20px;
+                    color: #6e6a64;
+                  "
+                >
+                  This link expires in 1 hour and works once.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 0 32px 32px 32px">
+                <p
+                  style="
+                    margin: 0 0 6px 0;
+                    font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+                      sans-serif;
+                    font-size: 11px;
+                    font-weight: 600;
+                    letter-spacing: 0.14em;
+                    text-transform: uppercase;
+                    color: #6e6a64;
+                  "
+                >
+                  Button not working?
+                </p>
+                <a
+                  href="{{ .ConfirmationURL }}"
+                  target="_blank"
+                  style="
+                    font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+                      sans-serif;
+                    font-size: 12px;
+                    line-height: 18px;
+                    color: #ffae35;
+                    text-decoration: none;
+                    word-break: break-all;
+                  "
+                  >{{ .ConfirmationURL }}</a
+                >
+              </td>
+            </tr>
+          </table>
+
+          <table
+            role="presentation"
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="max-width: 480px"
+          >
+            <tr>
+              <td align="center" style="padding: 22px 16px 0 16px">
+                <p
+                  style="
+                    margin: 0;
+                    font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+                      sans-serif;
+                    font-size: 12px;
+                    line-height: 19px;
+                    color: #6e6a64;
+                  "
+                >
+                  If you didn't ask to change your email, ignore this — nothing changes until the
+                  link is used. Sent by
+                  <a href="{{ .SiteURL }}" style="color: #6e6a64; text-decoration: underline"
+                    >Bleachers</a
+                  >.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
