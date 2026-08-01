@@ -127,8 +127,41 @@
                     color: #a8a49d;
                   "
                 >
-                  Tap below and you'll be straight back to your matches. No password needed.
+                  Enter this code in the app to finish signing in. No password needed.
                 </p>
+
+                <!-- Code -->
+                <table
+                  role="presentation"
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  border="0"
+                  style="
+                    margin: 22px 0 0 0;
+                    background-color: #100e0b;
+                    border: 1px solid #2b2520;
+                    border-radius: 16px;
+                  "
+                >
+                  <tr>
+                    <td align="center" style="padding: 20px 16px">
+                      <p
+                        style="
+                          margin: 0;
+                          font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+                          font-size: 40px;
+                          font-weight: 700;
+                          letter-spacing: 0.16em;
+                          line-height: 44px;
+                          color: #ffae35;
+                        "
+                      >
+                        {{ .Token }}
+                      </p>
+                    </td>
+                  </tr>
+                </table>
 
                 <!-- CTA -->
                 <table
@@ -154,7 +187,7 @@
                           text-decoration: none;
                           border-radius: 14px;
                         "
-                        >Sign in to Bleachers</a
+                        >Or sign in on this device</a
                       >
                     </td>
                   </tr>
@@ -170,7 +203,7 @@
                     color: #6e6a64;
                   "
                 >
-                  This link expires in 1 hour and works once.
+                  The code and link both expire in 1 hour and work once.
                 </p>
               </td>
             </tr>

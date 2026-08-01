@@ -42,8 +42,17 @@ Avoid the word "verify" in subjects where you can — it's a common spam-filter 
 - `{{ .SiteURL }}` — your configured Site URL, used in the footer link
 - `{{ .Email }}` / `{{ .NewEmail }}` — change-email only
 
-`{{ .Token }}` (the 6-digit code) is deliberately **not** included: the app has no
-code-entry screen, so showing a code nobody can use would only confuse people.
+- `{{ .Token }}` — the sign-in code, in the two sign-in emails
+
+**The code is the primary path, and that's deliberate.** When Bleachers is installed to a
+home screen it runs standalone, with storage separate from the browser (strictly so on
+iOS). Tapping the emailed link opens the browser, so the session would land there and the
+installed app would still look signed-out. Typing the code signs you in inside the app.
+The link is kept for people reading mail on the same device they browse on.
+
+Note the code is **8 digits** on this project, not the 6 people usually assume — it comes
+from Supabase's OTP length setting. The app's input doesn't hard-code a length, so
+changing that setting won't break it.
 
 ## Notes on how these are built
 

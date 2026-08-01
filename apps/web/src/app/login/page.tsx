@@ -1,9 +1,9 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Mail, CheckCircle2 } from 'lucide-react';
+import { Mail, ArrowRight } from 'lucide-react';
 import { fetchEnabledProviders, supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,6 +19,9 @@ function LoginInner() {
   const [error, setError] = useState('');
   const [googlePending, setGooglePending] = useState(false);
   const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [code, setCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const router = useRouter();
 
   // Only offer Google once we know the project has it configured (see
   // fetchEnabledProviders: an unconfigured provider strands the user on a JSON
@@ -51,6 +54,36 @@ function LoginInner() {
     } else {
       setStatus('sent');
     }
+  }
+
+  /**
+   * Verify the emailed code in-place.
+   *
+   * This is the path that works when the app is installed to the home screen:
+   * tapping the emailed link opens the system browser, whose storage is separate
+   * from the standalone PWA (strictly so on iOS), so the session would land in
+   * the wrong place. Typing the code signs you in right here instead.
+   */
+  async function verifyCode(e: React.FormEvent) {
+    e.preventDefault();
+    setVerifying(true);
+    setError('');
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: code.trim(),
+      // 'email' covers both a first-time signup code and a returning sign-in code.
+      type: 'email',
+    });
+    setVerifying(false);
+    if (error) {
+      setError(
+        /expired|invalid/i.test(error.message)
+          ? 'That code is wrong or has expired. Request a new one below.'
+          : (error.message ?? 'Could not verify that code'),
+      );
+      return;
+    }
+    router.replace(next);
   }
 
   /**
@@ -91,20 +124,61 @@ function LoginInner() {
       <Card className="w-full max-w-sm">
         <CardContent className="pt-6">
           {status === 'sent' ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
+            <motion.form
+              initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-col items-center gap-2 py-4 text-center"
+              onSubmit={verifyCode}
+              className="space-y-4"
             >
-              <CheckCircle2 className="text-live h-10 w-10" />
-              <p className="text-ink-1 font-semibold">Check your email</p>
-              <p className="text-ink-2 text-sm">
-                We sent a sign-in link to <span className="text-ink-1 font-medium">{email}</span>.
+              <div className="text-center">
+                <p className="text-ink-1 font-semibold">Check your email</p>
+                <p className="text-ink-2 mt-1 text-sm">
+                  We sent a code to <span className="text-ink-1 font-medium">{email}</span>. Enter
+                  it here to finish signing in.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="code">Sign-in code</Label>
+                <Input
+                  id="code"
+                  // Digits only, but no fixed length — the project's code length is a
+                  // Supabase setting, so don't bake one into the UI.
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  autoFocus
+                  required
+                  placeholder="Paste your code"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  className="text-center text-lg tracking-[0.3em]"
+                />
+              </div>
+
+              {error && <p className="text-negative text-sm">{error}</p>}
+
+              <Button type="submit" className="w-full" disabled={verifying || code.length < 6}>
+                {verifying ? <Spinner /> : <ArrowRight className="h-4 w-4" />}
+                Sign in
+              </Button>
+
+              <p className="text-ink-3 text-center text-xs leading-relaxed">
+                On a computer? You can tap the link in the email instead.
               </p>
-              <p className="text-ink-3 mt-2 text-xs">
-                In dev, the link is emailed to you (SMTP configured in Supabase).
-              </p>
-            </motion.div>
+
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  setStatus('idle');
+                  setCode('');
+                  setError('');
+                }}
+              >
+                Use a different email
+              </Button>
+            </motion.form>
           ) : (
             <form onSubmit={sendMagicLink} className="space-y-4">
               <div className="space-y-1.5">
@@ -122,7 +196,7 @@ function LoginInner() {
               {error && <p className="text-negative text-sm">{error}</p>}
               <Button type="submit" className="w-full" disabled={status === 'sending'}>
                 {status === 'sending' ? <Spinner /> : <Mail className="h-4 w-4" />}
-                Send magic link
+                Email me a sign-in code
               </Button>
               {googleEnabled && (
                 <>
