@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Cropper, { type Area, type Point } from 'react-easy-crop';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Camera, Loader2, X } from 'lucide-react';
@@ -44,6 +45,10 @@ export function ImagePicker({
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [error, setError] = useState<string | null>(null);
   const upload = useUploadImage();
+  const [mounted, setMounted] = useState(false);
+
+  // The dialog is portalled to <body>, which needs a DOM — so only after mount.
+  useEffect(() => setMounted(true), []);
 
   const open = objectUrl !== null;
 
@@ -116,83 +121,96 @@ export function ImagePicker({
 
       <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
 
-      <AnimatePresence>
-        {open && (
-          <>
-            <motion.div
-              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={upload.isPending ? undefined : closeModal}
-            />
-            <motion.div
-              // Height-constrained and scrollable: on a short screen the cropper
-              // plus zoom and buttons used to overflow the viewport, leaving the
-              // actions unreachable.
-              className="glass-strong rim fixed inset-x-4 top-1/2 z-50 mx-auto flex max-h-[92dvh] max-w-sm -translate-y-1/2 flex-col overflow-y-auto rounded-3xl p-5"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ type: 'spring', damping: 32, stiffness: 320 }}
-            >
-              <p className="text-eyebrow text-ink-3 mb-3">Crop photo</p>
+      {/*
+        Portalled to <body> on purpose. Every caller renders this inside a
+        `.glass` panel, and `backdrop-filter` makes an element the containing
+        block for fixed-position descendants — so in place, `fixed inset-0`
+        covered only the card, `top-1/2` centred on the card, and the dialog
+        got clipped at the card's edge with its buttons out of reach.
+      */}
+      {mounted &&
+        createPortal(
+          <AnimatePresence>
+            {open && (
+              <>
+                <motion.div
+                  className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={upload.isPending ? undefined : closeModal}
+                />
+                <motion.div
+                  // Capped and scrollable so the cropper, zoom and buttons stay
+                  // within the viewport on short screens.
+                  className="glass-strong rim fixed inset-x-4 top-1/2 z-50 mx-auto flex max-h-[92dvh] max-w-sm -translate-y-1/2 flex-col overflow-y-auto rounded-3xl p-5"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Crop photo"
+                >
+                  <p className="text-eyebrow text-ink-3 mb-3">Crop photo</p>
 
-              <div className="bg-canvas relative h-[min(50dvh,18rem)] w-full shrink-0 overflow-hidden rounded-xl">
-                {objectUrl && (
-                  <Cropper
-                    image={objectUrl}
-                    crop={crop}
-                    zoom={zoom}
-                    aspect={1}
-                    cropShape={shape === 'circle' ? 'round' : 'rect'}
-                    onCropChange={setCrop}
-                    onZoomChange={setZoom}
-                    onCropComplete={(_area, pixels) => setCroppedAreaPixels(pixels)}
+                  <div className="bg-canvas relative h-[min(50dvh,18rem)] w-full shrink-0 overflow-hidden rounded-xl">
+                    {objectUrl && (
+                      <Cropper
+                        image={objectUrl}
+                        crop={crop}
+                        zoom={zoom}
+                        aspect={1}
+                        cropShape={shape === 'circle' ? 'round' : 'rect'}
+                        onCropChange={setCrop}
+                        onZoomChange={setZoom}
+                        onCropComplete={(_area, pixels) => setCroppedAreaPixels(pixels)}
+                      />
+                    )}
+                  </div>
+
+                  <input
+                    type="range"
+                    min={1}
+                    max={3}
+                    step={0.1}
+                    value={zoom}
+                    onChange={(e) => setZoom(Number(e.target.value))}
+                    className="accent-brand mt-4 w-full shrink-0"
+                    aria-label="Zoom"
                   />
-                )}
-              </div>
 
-              <input
-                type="range"
-                min={1}
-                max={3}
-                step={0.1}
-                value={zoom}
-                onChange={(e) => setZoom(Number(e.target.value))}
-                className="accent-brand mt-4 w-full"
-                aria-label="Zoom"
-              />
+                  {error && <p className="text-negative mt-3 text-sm">{error}</p>}
 
-              {error && <p className="text-negative mt-3 text-sm">{error}</p>}
-
-              <div className="mt-4 flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="glass"
-                  onClick={closeModal}
-                  disabled={upload.isPending}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => void handleUse()}
-                  disabled={upload.isPending || !croppedAreaPixels}
-                >
-                  {upload.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" /> Uploading…
-                    </>
-                  ) : (
-                    'Use photo'
-                  )}
-                </Button>
-              </div>
-            </motion.div>
-          </>
+                  <div className="mt-4 flex shrink-0 justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="glass"
+                      onClick={closeModal}
+                      disabled={upload.isPending}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => void handleUse()}
+                      disabled={upload.isPending || !croppedAreaPixels}
+                    >
+                      {upload.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" /> Uploading…
+                        </>
+                      ) : (
+                        'Use photo'
+                      )}
+                    </Button>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>,
+          document.body,
         )}
-      </AnimatePresence>
     </div>
   );
 }
