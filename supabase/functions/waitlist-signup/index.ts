@@ -107,7 +107,9 @@ Deno.serve(async (req) => {
   let source: string | null = null;
   try {
     const body = await req.json();
-    email = String(body?.email ?? '').trim().toLowerCase();
+    email = String(body?.email ?? '')
+      .trim()
+      .toLowerCase();
     source = body?.source ? String(body.source).slice(0, 120) : null;
   } catch {
     return json({ error: 'Invalid request' }, 400);

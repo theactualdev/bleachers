@@ -19,7 +19,7 @@ the browser-direct approach in the first place.
 
 **1. Create the table.** Supabase → SQL Editor → run [`schema.sql`](schema.sql).
 
-RLS is on with *no policies*, so `anon` and `authenticated` can neither read nor
+RLS is on with _no policies_, so `anon` and `authenticated` can neither read nor
 write it through PostgREST. Only the edge function touches it. That matters: a
 waitlist is a list of email addresses, and any policy permissive enough for
 anonymous inserts is easy to get wrong in a way that leaks the list.

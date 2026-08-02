@@ -51,7 +51,7 @@ export default function WaitlistPage() {
         <div className="bg-brand text-brand-ink font-display shadow-button mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-3xl font-extrabold">
           B
         </div>
-        <h1 className="font-display text-ink-1 mt-4 text-3xl font-bold tracking-tight uppercase">
+        <h1 className="font-display text-ink-1 mt-4 text-3xl font-bold uppercase tracking-tight">
           Bleachers
         </h1>
         <p className="text-ink-2 mt-1 text-sm">Score any match in seconds.</p>
