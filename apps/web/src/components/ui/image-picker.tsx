@@ -140,72 +140,81 @@ export function ImagePicker({
                   exit={{ opacity: 0 }}
                   onClick={upload.isPending ? undefined : closeModal}
                 />
-                <motion.div
-                  // Capped and scrollable so the cropper, zoom and buttons stay
-                  // within the viewport on short screens.
-                  className="glass-strong rim fixed inset-x-4 top-1/2 z-50 mx-auto flex max-h-[92dvh] max-w-sm -translate-y-1/2 flex-col overflow-y-auto rounded-3xl p-5"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ type: 'spring', damping: 32, stiffness: 320 }}
-                  role="dialog"
-                  aria-modal="true"
-                  aria-label="Crop photo"
-                >
-                  <p className="text-eyebrow text-ink-3 mb-3">Crop photo</p>
+                {/*
+                  Centred with flex, not `top-1/2 -translate-y-1/2`: Framer
+                  Motion writes `transform` inline to animate scale, which
+                  overrides Tailwind's translate class and drops the dialog
+                  half a screen down. `pointer-events-none` lets clicks fall
+                  through to the backdrop behind it.
+                */}
+                <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4">
+                  <motion.div
+                    // Capped and scrollable so the cropper, zoom and buttons
+                    // stay reachable on short screens.
+                    className="glass-strong rim pointer-events-auto flex max-h-full w-full max-w-sm flex-col overflow-y-auto rounded-3xl p-5"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Crop photo"
+                  >
+                    <p className="text-eyebrow text-ink-3 mb-3 shrink-0">Crop photo</p>
 
-                  <div className="bg-canvas relative h-[min(50dvh,18rem)] w-full shrink-0 overflow-hidden rounded-xl">
-                    {objectUrl && (
-                      <Cropper
-                        image={objectUrl}
-                        crop={crop}
-                        zoom={zoom}
-                        aspect={1}
-                        cropShape={shape === 'circle' ? 'round' : 'rect'}
-                        onCropChange={setCrop}
-                        onZoomChange={setZoom}
-                        onCropComplete={(_area, pixels) => setCroppedAreaPixels(pixels)}
-                      />
-                    )}
-                  </div>
-
-                  <input
-                    type="range"
-                    min={1}
-                    max={3}
-                    step={0.1}
-                    value={zoom}
-                    onChange={(e) => setZoom(Number(e.target.value))}
-                    className="accent-brand mt-4 w-full shrink-0"
-                    aria-label="Zoom"
-                  />
-
-                  {error && <p className="text-negative mt-3 text-sm">{error}</p>}
-
-                  <div className="mt-4 flex shrink-0 justify-end gap-2">
-                    <Button
-                      type="button"
-                      variant="glass"
-                      onClick={closeModal}
-                      disabled={upload.isPending}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={() => void handleUse()}
-                      disabled={upload.isPending || !croppedAreaPixels}
-                    >
-                      {upload.isPending ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" /> Uploading…
-                        </>
-                      ) : (
-                        'Use photo'
+                    <div className="bg-canvas relative h-[min(50dvh,18rem)] w-full shrink-0 overflow-hidden rounded-xl">
+                      {objectUrl && (
+                        <Cropper
+                          image={objectUrl}
+                          crop={crop}
+                          zoom={zoom}
+                          aspect={1}
+                          cropShape={shape === 'circle' ? 'round' : 'rect'}
+                          onCropChange={setCrop}
+                          onZoomChange={setZoom}
+                          onCropComplete={(_area, pixels) => setCroppedAreaPixels(pixels)}
+                        />
                       )}
-                    </Button>
-                  </div>
-                </motion.div>
+                    </div>
+
+                    <input
+                      type="range"
+                      min={1}
+                      max={3}
+                      step={0.1}
+                      value={zoom}
+                      onChange={(e) => setZoom(Number(e.target.value))}
+                      className="accent-brand mt-4 w-full shrink-0"
+                      aria-label="Zoom"
+                    />
+
+                    {error && <p className="text-negative mt-3 text-sm">{error}</p>}
+
+                    <div className="mt-4 flex shrink-0 justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="glass"
+                        onClick={closeModal}
+                        disabled={upload.isPending}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => void handleUse()}
+                        disabled={upload.isPending || !croppedAreaPixels}
+                      >
+                        {upload.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" /> Uploading…
+                          </>
+                        ) : (
+                          'Use photo'
+                        )}
+                      </Button>
+                    </div>
+                  </motion.div>
+                </div>
               </>
             )}
           </AnimatePresence>,
