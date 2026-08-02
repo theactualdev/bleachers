@@ -8,6 +8,16 @@ import { useActiveOrgId } from '@/lib/org-store';
 import { Spinner } from '@/components/ui/misc';
 import { QueryErrorState } from '@/components/ui/query-error';
 
+/**
+ * Where signed-out visitors get sent. Set NEXT_PUBLIC_WAITLIST_MODE=on in Vercel
+ * to make the waitlist the front door before launch.
+ *
+ * /login is never blocked, only unlinked — it stays reachable by direct URL, so
+ * this can't lock you out of your own app the way a hard redirect would.
+ */
+const SIGNED_OUT_DESTINATION =
+  process.env.NEXT_PUBLIC_WAITLIST_MODE === 'on' ? '/waitlist' : '/login';
+
 /** Branded hold screen — signing in should never look like a blank app. */
 function Loading({ label }: { label: string }) {
   return (
@@ -38,7 +48,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const activeOrgId = useActiveOrgId();
 
   useEffect(() => {
-    if (!isPending && !data) router.replace('/login');
+    if (!isPending && !data) router.replace(SIGNED_OUT_DESTINATION);
   }, [isPending, data, router]);
 
   if (isPending) return <Loading label="Getting things ready…" />;
