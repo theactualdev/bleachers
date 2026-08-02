@@ -7,9 +7,16 @@ import { Mail, ArrowRight } from 'lucide-react';
 import { fetchEnabledProviders, supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { CodeInput } from '@/components/ui/code-input';
 import { Input, Label } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/misc';
 import { API_URL } from '@/lib/api';
+
+/**
+ * Digits in the emailed sign-in code. Must match Supabase's OTP length
+ * (Authentication → Providers → Email → "Email OTP Length").
+ */
+const CODE_LENGTH = 8;
 
 function LoginInner() {
   const rawNext = useSearchParams().get('next');
@@ -170,24 +177,23 @@ function LoginInner() {
                 <Label htmlFor="code" className="text-eyebrow text-ink-3 block text-center">
                   Enter the code
                 </Label>
-                <Input
+                <CodeInput
                   id="code"
-                  // Digits only, but no fixed length — the code length is a Supabase
-                  // setting, so don't bake one into the UI. No placeholder: letter-spaced
-                  // placeholder text reads as broken, and the label already says enough.
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  autoFocus
-                  required
                   value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  className="font-display tabnums h-16 text-center indent-[0.4em] text-3xl font-bold tracking-[0.4em]"
+                  onChange={setCode}
+                  length={CODE_LENGTH}
+                  autoFocus
+                  disabled={verifying}
                 />
               </div>
 
               {error && <p className="text-negative text-center text-sm">{error}</p>}
 
-              <Button type="submit" className="w-full" disabled={verifying || code.length < 6}>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={verifying || code.length < CODE_LENGTH}
+              >
                 {verifying ? <Spinner /> : <ArrowRight className="h-4 w-4" />}
                 Sign in
               </Button>

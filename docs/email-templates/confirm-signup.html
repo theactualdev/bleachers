@@ -34,7 +34,7 @@
         color: #0c0a08;
       "
     >
-      Confirm your email and score your first match. &#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;
+      Your confirmation code — type it into the app to get started. &#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;
     </div>
 
     <table
@@ -127,7 +127,7 @@
                     color: #a8a49d;
                   "
                 >
-                  Enter this code in the app to confirm your address. From there it's under a
+                  Type this code into the app to confirm your address. From there it's under a
                   minute to your first live match.
                 </p>
 
@@ -139,57 +139,27 @@
                   cellspacing="0"
                   border="0"
                   style="
-                    margin: 22px 0 0 0;
+                    margin: 26px 0 0 0;
                     background-color: #100e0b;
                     border: 1px solid #2b2520;
                     border-radius: 16px;
                   "
                 >
                   <tr>
-                    <td align="center" style="padding: 20px 16px">
+                    <td align="center" style="padding: 24px 16px">
                       <p
                         style="
                           margin: 0;
                           font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
-                          font-size: 40px;
+                          font-size: 42px;
                           font-weight: 700;
-                          letter-spacing: 0.16em;
-                          line-height: 44px;
+                          letter-spacing: 0.18em;
+                          line-height: 46px;
                           color: #ffae35;
                         "
                       >
                         {{ .Token }}
                       </p>
-                    </td>
-                  </tr>
-                </table>
-
-                <!-- CTA -->
-                <table
-                  role="presentation"
-                  cellpadding="0"
-                  cellspacing="0"
-                  border="0"
-                  style="margin: 28px auto 0 auto"
-                >
-                  <tr>
-                    <td align="center" bgcolor="#ffae35" style="border-radius: 14px">
-                      <a
-                        href="{{ .ConfirmationURL }}"
-                        target="_blank"
-                        style="
-                          display: inline-block;
-                          padding: 15px 34px;
-                          font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
-                            sans-serif;
-                          font-size: 16px;
-                          font-weight: 700;
-                          color: #1a1206;
-                          text-decoration: none;
-                          border-radius: 14px;
-                        "
-                        >Or confirm on this device</a
-                      >
                     </td>
                   </tr>
                 </table>
@@ -204,14 +174,14 @@
                     color: #6e6a64;
                   "
                 >
-                  The code and link both expire in 1 hour and work once.
+                  This code expires in 1 hour and works once.
                 </p>
               </td>
             </tr>
 
             <!-- What you can do -->
             <tr>
-              <td style="padding: 0 32px 8px 32px">
+              <td style="padding: 0 32px 32px 32px">
                 <table
                   role="presentation"
                   width="100%"
@@ -279,40 +249,6 @@
                 </table>
               </td>
             </tr>
-
-            <!-- Fallback link -->
-            <tr>
-              <td style="padding: 16px 32px 32px 32px">
-                <p
-                  style="
-                    margin: 0 0 6px 0;
-                    font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
-                      sans-serif;
-                    font-size: 11px;
-                    font-weight: 600;
-                    letter-spacing: 0.14em;
-                    text-transform: uppercase;
-                    color: #6e6a64;
-                  "
-                >
-                  Button not working?
-                </p>
-                <a
-                  href="{{ .ConfirmationURL }}"
-                  target="_blank"
-                  style="
-                    font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
-                      sans-serif;
-                    font-size: 12px;
-                    line-height: 18px;
-                    color: #ffae35;
-                    text-decoration: none;
-                    word-break: break-all;
-                  "
-                  >{{ .ConfirmationURL }}</a
-                >
-              </td>
-            </tr>
           </table>
 
           <!-- Footer -->
@@ -339,8 +275,7 @@
                   You're getting this because this address was used to sign up at
                   <a href="{{ .SiteURL }}" style="color: #6e6a64; text-decoration: underline"
                     >Bleachers</a
-                  >. If that wasn't you, just ignore it — no account is created without this
-                  confirmation.
+                  >. If that wasn't you, just ignore it — no account is created without this code.
                 </p>
               </td>
             </tr>

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark" />
     <meta name="supported-color-schemes" content="dark" />
-    <title>Your Bleachers sign-in link</title>
+    <title>Your Bleachers sign-in code</title>
     <!--[if mso]>
       <style>
         body, table, td, a { font-family: Arial, sans-serif !important; }
@@ -34,7 +34,7 @@
         color: #0c0a08;
       "
     >
-      Tap to sign in — this link expires in 1 hour. &#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;
+      Your sign-in code — type it into the app. Expires in 1 hour. &#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;
     </div>
 
     <table
@@ -114,7 +114,7 @@
                     color: #f7f5f1;
                   "
                 >
-                  Here's your sign-in link
+                  Here's your sign-in code
                 </p>
 
                 <p
@@ -127,7 +127,7 @@
                     color: #a8a49d;
                   "
                 >
-                  Enter this code in the app to finish signing in. No password needed.
+                  Type it into the app to finish signing in. No password needed.
                 </p>
 
                 <!-- Code -->
@@ -138,57 +138,27 @@
                   cellspacing="0"
                   border="0"
                   style="
-                    margin: 22px 0 0 0;
+                    margin: 26px 0 0 0;
                     background-color: #100e0b;
                     border: 1px solid #2b2520;
                     border-radius: 16px;
                   "
                 >
                   <tr>
-                    <td align="center" style="padding: 20px 16px">
+                    <td align="center" style="padding: 24px 16px">
                       <p
                         style="
                           margin: 0;
                           font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
-                          font-size: 40px;
+                          font-size: 42px;
                           font-weight: 700;
-                          letter-spacing: 0.16em;
-                          line-height: 44px;
+                          letter-spacing: 0.18em;
+                          line-height: 46px;
                           color: #ffae35;
                         "
                       >
                         {{ .Token }}
                       </p>
-                    </td>
-                  </tr>
-                </table>
-
-                <!-- CTA -->
-                <table
-                  role="presentation"
-                  cellpadding="0"
-                  cellspacing="0"
-                  border="0"
-                  style="margin: 28px auto 0 auto"
-                >
-                  <tr>
-                    <td align="center" bgcolor="#ffae35" style="border-radius: 14px">
-                      <a
-                        href="{{ .ConfirmationURL }}"
-                        target="_blank"
-                        style="
-                          display: inline-block;
-                          padding: 15px 34px;
-                          font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
-                            sans-serif;
-                          font-size: 16px;
-                          font-weight: 700;
-                          color: #1a1206;
-                          text-decoration: none;
-                          border-radius: 14px;
-                        "
-                        >Or sign in on this device</a
-                      >
                     </td>
                   </tr>
                 </table>
@@ -203,55 +173,8 @@
                     color: #6e6a64;
                   "
                 >
-                  The code and link both expire in 1 hour and work once.
+                  This code expires in 1 hour and works once.
                 </p>
-              </td>
-            </tr>
-
-            <!-- Fallback link -->
-            <tr>
-              <td style="padding: 0 32px 32px 32px">
-                <table
-                  role="presentation"
-                  width="100%"
-                  cellpadding="0"
-                  cellspacing="0"
-                  border="0"
-                  style="background-color: #100e0b; border: 1px solid #2b2520; border-radius: 14px"
-                >
-                  <tr>
-                    <td style="padding: 14px 16px">
-                      <p
-                        style="
-                          margin: 0 0 6px 0;
-                          font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
-                            sans-serif;
-                          font-size: 11px;
-                          font-weight: 600;
-                          letter-spacing: 0.14em;
-                          text-transform: uppercase;
-                          color: #6e6a64;
-                        "
-                      >
-                        Button not working?
-                      </p>
-                      <a
-                        href="{{ .ConfirmationURL }}"
-                        target="_blank"
-                        style="
-                          font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
-                            sans-serif;
-                          font-size: 12px;
-                          line-height: 18px;
-                          color: #ffae35;
-                          text-decoration: none;
-                          word-break: break-all;
-                        "
-                        >{{ .ConfirmationURL }}</a
-                      >
-                    </td>
-                  </tr>
-                </table>
               </td>
             </tr>
           </table>
@@ -280,7 +203,7 @@
                   You're getting this because someone entered this address at
                   <a href="{{ .SiteURL }}" style="color: #6e6a64; text-decoration: underline"
                     >Bleachers</a
-                  >. If that wasn't you, just ignore it — nobody can get in without this link.
+                  >. If that wasn't you, just ignore it — nobody can get in without this code.
                 </p>
               </td>
             </tr>
