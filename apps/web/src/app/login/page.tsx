@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Mail, ArrowRight } from 'lucide-react';
@@ -66,12 +67,23 @@ function LoginInner() {
     setError('');
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}${next}` },
+      options: {
+        emailRedirectTo: `${window.location.origin}${next}`,
+        // Never create an account from the sign-in form. This is UX, not
+        // security — Supabase's "Allow new users to sign up" setting is what
+        // actually enforces it, since the anon key is public and a caller can
+        // send whatever options they like.
+        shouldCreateUser: false,
+      },
     });
     if (resend) setResending(false);
     if (error) {
       if (!resend) setStatus('error');
-      setError(error.message ?? 'Could not send the code');
+      setError(
+        /signups? not allowed|otp_disabled|not found/i.test(error.message ?? '')
+          ? 'NOT_OPEN'
+          : (error.message ?? 'Could not send the code'),
+      );
       return;
     }
     setStatus('sent');
@@ -241,7 +253,17 @@ function LoginInner() {
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
-              {error && <p className="text-negative text-sm">{error}</p>}
+              {error === 'NOT_OPEN' ? (
+                <p className="text-ink-2 text-sm leading-relaxed">
+                  Bleachers isn't open to new accounts yet.{' '}
+                  <Link href="/waitlist" className="text-brand font-medium">
+                    Join the waitlist
+                  </Link>{' '}
+                  and we'll email you when it's your turn.
+                </p>
+              ) : (
+                error && <p className="text-negative text-sm">{error}</p>
+              )}
               <Button type="submit" className="w-full" disabled={status === 'sending'}>
                 {status === 'sending' ? <Spinner /> : <Mail className="h-4 w-4" />}
                 Email me a sign-in code

@@ -66,6 +66,42 @@ direct URL, which is your way in. Remove the variable to go back to normal.
 `NEXT_PUBLIC_*` is inlined at build time, so this needs a redeploy, not just a
 variable change.
 
+## Pre-launch lockdown: one account, no signups
+
+Hiding the login link is not a lock. Three things make it one, and **the first
+two are the ones that actually hold** — the third is only presentation.
+
+**1. Stop Supabase creating accounts.** Authentication → Sign In / Providers →
+Email → turn **off** "Allow new users to sign up".
+
+This is the load-bearing setting. Until it's off, anyone who reaches `/login`
+gets an account: `signInWithOtp` creates a user for an unknown address by
+default, which is how the app behaved before this change. Being a project-level
+setting it also covers Google and any provider added later, which a client-side
+check never could.
+
+**2. Allowlist your address on the API.** On Railway:
+
+```
+ALLOWED_EMAILS=olayinkacodes@gmail.com
+```
+
+Comma-separated for more than one. The auth guard rejects any other verified
+session with `403 Bleachers is not open yet.`, so even a valid Supabase token
+cannot read or write your data. Leave it unset and the API is open to any valid
+session — that's the default, so local dev and CI are unaffected.
+
+Why both: the anon key is public and ships in the browser bundle. Anyone can
+call Supabase's auth endpoints directly with whatever options they like, so
+nothing enforced in the web app is enforcement at all. Step 1 stops the account
+existing; step 2 stops a session mattering if one somehow does.
+
+**3. The sign-in form asks for no new accounts.** `shouldCreateUser: false`, and
+an unknown address gets pointed at the waitlist rather than a raw Supabase
+error. Cosmetic — a caller who skips the form skips this too.
+
+To open up later: turn signups back on, and remove `ALLOWED_EMAILS`.
+
 ## Checking signups
 
 ```sql

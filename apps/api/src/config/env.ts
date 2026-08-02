@@ -5,6 +5,8 @@ export interface AppEnv {
   databaseUrl: string;
   directUrl: string;
   webOrigins: string[];
+  /** Pre-launch allowlist; empty means the API is open to any valid session. */
+  allowedEmails: string[];
   supabase: {
     url: string;
     jwksUrl: string;
@@ -26,6 +28,13 @@ export function loadEnv(): AppEnv {
     webOrigins: (process.env.WEB_ORIGIN ?? 'http://localhost:3000')
       .split(',')
       .map((s) => s.trim().replace(/\/+$/, ''))
+      .filter(Boolean),
+    // Pre-launch lockdown. When non-empty, only these addresses may use the API
+    // at all — a valid Supabase session for anyone else is rejected. Empty (the
+    // default) means open, so tests and local dev are unaffected.
+    allowedEmails: (process.env.ALLOWED_EMAILS ?? '')
+      .split(',')
+      .map((s) => s.trim().toLowerCase())
       .filter(Boolean),
     supabase: {
       url: supabaseUrl,
