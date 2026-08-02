@@ -40,8 +40,13 @@ Edge Functions if you'd rather not install the CLI.
 supabase secrets set RESEND_API_KEY=re_xxx WAITLIST_FROM="Bleachers <hello@yourdomain.com>" WAITLIST_SITE_URL=https://bleacherss.vercel.app
 ```
 
-`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically — do
-not set those yourself.
+`SUPABASE_DB_URL` is injected automatically — do not set it yourself.
+
+The function talks to Postgres **directly**, not through `supabase.from()`. This
+project keeps the Data API (PostgREST) disabled, which is why the API uses Prisma
+over a direct connection and nothing else in the app touches PostgREST. A
+`.from()` insert would fail against a project with no exposed schemas, so the
+function uses SQL and the Data API can stay off.
 
 The `WAITLIST_FROM` address must be on a domain you've verified in Resend.
 Resend will reject an unverified sender, and until you verify one you can only

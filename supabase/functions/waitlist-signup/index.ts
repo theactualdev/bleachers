@@ -13,7 +13,11 @@
  * `--no-verify-jwt` is required: signups come from signed-out visitors.
  */
 
-import { createClient } from 'npm:@supabase/supabase-js@2';
+// Direct Postgres, deliberately not supabase-js `.from()`. This project keeps
+// the Data API (PostgREST) disabled — nothing else needs it, since the API uses
+// Prisma over a direct connection — and a `.from()` insert would fail against a
+// project with no exposed schemas. SUPABASE_DB_URL is injected automatically.
+import postgres from 'npm:postgres@3';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -119,23 +123,28 @@ Deno.serve(async (req) => {
     return json({ error: 'Enter a valid email address.' }, 400);
   }
 
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-  );
+  // `prepare: false` — the connection may be pooled, where prepared statements
+  // are not supported.
+  const sql = postgres(Deno.env.get('SUPABASE_DB_URL')!, { prepare: false });
 
-  const { error } = await supabase.from('waitlist_signup').insert({
-    email,
-    source,
-    user_agent: req.headers.get('user-agent')?.slice(0, 400) ?? null,
-  });
-
-  // 23505 = unique violation. Signing up twice is not an error worth showing,
-  // and it must not send a second email.
-  const alreadyOnList = error?.code === '23505';
-  if (error && !alreadyOnList) {
-    console.error('waitlist insert failed', error);
+  let alreadyOnList: boolean;
+  try {
+    // ON CONFLICT covers the unique index on lower(email), so signing up twice
+    // inserts nothing and returns no row — which is how we know not to send a
+    // second confirmation. No SELECT first: that would race two simultaneous
+    // signups of the same address into two emails.
+    const inserted = await sql`
+      insert into public.waitlist_signup (email, source, user_agent)
+      values (${email}, ${source}, ${req.headers.get('user-agent')?.slice(0, 400) ?? null})
+      on conflict do nothing
+      returning id
+    `;
+    alreadyOnList = inserted.length === 0;
+  } catch (err) {
+    console.error('waitlist insert failed', err);
     return json({ error: "Couldn't save that just now — try again." }, 500);
+  } finally {
+    await sql.end();
   }
 
   if (!alreadyOnList) {
