@@ -21,7 +21,16 @@ function LoginInner() {
   const [googleEnabled, setGoogleEnabled] = useState(false);
   const [code, setCode] = useState('');
   const [verifying, setVerifying] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+  const [resending, setResending] = useState(false);
   const router = useRouter();
+
+  // Countdown for the resend cooldown.
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setTimeout(() => setResendIn((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
 
   // Only offer Google once we know the project has it configured (see
   // fetchEnabledProviders: an unconfigured provider strands the user on a JSON
@@ -40,20 +49,33 @@ function LoginInner() {
     };
   }, []);
 
-  async function sendMagicLink(e: React.FormEvent) {
-    e.preventDefault();
-    setStatus('sending');
+  /**
+   * `resend` keeps the code screen up while a new code is fetched — flipping
+   * `status` back to 'sending' would bounce the user to the email form.
+   */
+  async function requestCode({ resend = false } = {}) {
+    if (resend) setResending(true);
+    else setStatus('sending');
     setError('');
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: `${window.location.origin}${next}` },
     });
+    if (resend) setResending(false);
     if (error) {
-      setStatus('error');
-      setError(error.message ?? 'Could not send the link');
-    } else {
-      setStatus('sent');
+      if (!resend) setStatus('error');
+      setError(error.message ?? 'Could not send the code');
+      return;
     }
+    setStatus('sent');
+    // Supabase rate-limits sends; hold the resend for a moment so a second tap
+    // doesn't earn a "too many requests" instead of an email.
+    setResendIn(30);
+  }
+
+  async function submitEmail(e: React.FormEvent) {
+    e.preventDefault();
+    await requestCode();
   }
 
   /**
@@ -131,40 +153,60 @@ function LoginInner() {
               className="space-y-4"
             >
               <div className="text-center">
-                <p className="text-ink-1 font-semibold">Check your email</p>
-                <p className="text-ink-2 mt-1 text-sm">
-                  We sent a code to <span className="text-ink-1 font-medium">{email}</span>. Enter
-                  it here to finish signing in.
+                <div className="glass mx-auto flex h-14 w-14 items-center justify-center rounded-2xl">
+                  <Mail className="text-brand h-6 w-6" />
+                </div>
+                <p className="font-display text-ink-1 mt-4 text-2xl font-bold tracking-tight">
+                  Check your email
+                </p>
+                <p className="text-ink-2 mt-1.5 text-sm leading-relaxed">
+                  We sent a sign-in code to
+                  <br />
+                  <span className="text-ink-1 font-medium">{email}</span>
                 </p>
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="code">Sign-in code</Label>
+              <div className="space-y-2">
+                <Label htmlFor="code" className="text-eyebrow text-ink-3 block text-center">
+                  Enter the code
+                </Label>
                 <Input
                   id="code"
-                  // Digits only, but no fixed length — the project's code length is a
-                  // Supabase setting, so don't bake one into the UI.
+                  // Digits only, but no fixed length — the code length is a Supabase
+                  // setting, so don't bake one into the UI. No placeholder: letter-spaced
+                  // placeholder text reads as broken, and the label already says enough.
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   autoFocus
                   required
-                  placeholder="Paste your code"
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  className="text-center text-lg tracking-[0.3em]"
+                  className="font-display tabnums h-16 text-center indent-[0.4em] text-3xl font-bold tracking-[0.4em]"
                 />
               </div>
 
-              {error && <p className="text-negative text-sm">{error}</p>}
+              {error && <p className="text-negative text-center text-sm">{error}</p>}
 
               <Button type="submit" className="w-full" disabled={verifying || code.length < 6}>
                 {verifying ? <Spinner /> : <ArrowRight className="h-4 w-4" />}
                 Sign in
               </Button>
 
-              <p className="text-ink-3 text-center text-xs leading-relaxed">
-                On a computer? You can tap the link in the email instead.
-              </p>
+              <div className="flex items-center justify-center gap-1 text-xs">
+                <span className="text-ink-3">Didn't get it?</span>
+                <button
+                  type="button"
+                  disabled={resendIn > 0 || resending}
+                  onClick={() => void requestCode({ resend: true })}
+                  className="text-brand font-medium disabled:opacity-50"
+                >
+                  {resending
+                    ? 'Sending…'
+                    : resendIn > 0
+                      ? `Resend in ${resendIn}s`
+                      : 'Send a new code'}
+                </button>
+              </div>
 
               <Button
                 type="button"
@@ -180,7 +222,7 @@ function LoginInner() {
               </Button>
             </motion.form>
           ) : (
-            <form onSubmit={sendMagicLink} className="space-y-4">
+            <form onSubmit={submitEmail} className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
                 <Input
