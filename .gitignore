@@ -42,3 +42,7 @@ Thumbs.db
 
 # Subagent-driven dev scratch
 .superpowers/
+
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
