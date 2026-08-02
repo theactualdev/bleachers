@@ -31,7 +31,7 @@ export function CodeInput({
 
   return (
     <div className="relative" onClick={() => ref.current?.focus()} role="presentation">
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1 sm:gap-1.5">
         {Array.from({ length }, (_, i) => {
           const char = value[i];
           const isActive = focused && i === activeIndex;
@@ -39,7 +39,10 @@ export function CodeInput({
             <div
               key={i}
               className={cn(
-                'glass font-display tabnums text-ink-1 flex h-14 flex-1 items-center justify-center rounded-md text-2xl font-bold transition-all duration-150',
+                // `min-w-0` lets the boxes actually shrink on narrow phones —
+                // without it flex-1 refuses to go below content width and the
+                // row overflows the card.
+                'glass font-display tabnums text-ink-1 flex h-12 min-w-0 flex-1 items-center justify-center rounded-sm text-xl font-bold transition-all duration-150 sm:h-14 sm:rounded-md sm:text-2xl',
                 isActive && 'ring-brand ring-offset-canvas ring-2 ring-offset-2',
                 disabled && 'opacity-40',
               )}

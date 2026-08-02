@@ -127,7 +127,10 @@ export function ImagePicker({
               onClick={upload.isPending ? undefined : closeModal}
             />
             <motion.div
-              className="glass-strong rim fixed inset-x-4 top-1/2 z-50 mx-auto max-w-sm -translate-y-1/2 rounded-3xl p-5"
+              // Height-constrained and scrollable: on a short screen the cropper
+              // plus zoom and buttons used to overflow the viewport, leaving the
+              // actions unreachable.
+              className="glass-strong rim fixed inset-x-4 top-1/2 z-50 mx-auto flex max-h-[92dvh] max-w-sm -translate-y-1/2 flex-col overflow-y-auto rounded-3xl p-5"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -135,7 +138,7 @@ export function ImagePicker({
             >
               <p className="text-eyebrow text-ink-3 mb-3">Crop photo</p>
 
-              <div className="bg-canvas relative h-72 w-full overflow-hidden rounded-xl">
+              <div className="bg-canvas relative h-[min(50dvh,18rem)] w-full shrink-0 overflow-hidden rounded-xl">
                 {objectUrl && (
                   <Cropper
                     image={objectUrl}
