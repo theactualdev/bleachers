@@ -7,6 +7,8 @@ export interface AppEnv {
   webOrigins: string[];
   /** Pre-launch allowlist; empty means the API is open to any valid session. */
   allowedEmails: string[];
+  /** Deployed commit, surfaced on /health so a deploy can be confirmed. */
+  commitSha: string;
   supabase: {
     url: string;
     jwksUrl: string;
@@ -36,6 +38,11 @@ export function loadEnv(): AppEnv {
       .split(',')
       .map((s) => s.trim().toLowerCase())
       .filter(Boolean),
+    // Railway injects RAILWAY_GIT_COMMIT_SHA. Trimmed to 12 chars to match the
+    // web service worker's cache stamp, so the two can be compared at a glance.
+    commitSha:
+      (process.env.RAILWAY_GIT_COMMIT_SHA ?? process.env.GIT_COMMIT_SHA ?? '').slice(0, 12) ||
+      'unknown',
     supabase: {
       url: supabaseUrl,
       jwksUrl: `${supabaseUrl}/auth/v1/.well-known/jwks.json`,
