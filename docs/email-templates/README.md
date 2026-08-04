@@ -50,10 +50,11 @@ on iOS). Tapping an emailed link opens the browser, so the session lands there a
 installed app still looks signed-out. A code typed into the app has no such problem — and
 with no link in the email, there's nothing to tap by mistake.
 
-The code is **8 digits** on this project, not the 6 people usually assume. That comes from
-Supabase → Authentication → Providers → Email → **Email OTP Length**. If you change it,
-also change `CODE_LENGTH` in `apps/web/src/app/login/page.tsx` — the segmented input
-renders one box per digit.
+The code is **6 digits**, set by Supabase → Authentication → Sign In / Providers → Email →
+**Email OTP Length**. If you change it there, change `CODE_LENGTH` in
+`apps/web/src/app/login/page.tsx` to match — the segmented input renders one box per digit,
+and the Sign in button stays disabled until the typed code reaches that length, so a
+mismatch silently makes signing in impossible.
 
 ## Notes on how these are built
 

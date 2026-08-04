@@ -17,7 +17,7 @@ import { API_URL } from '@/lib/api';
  * Digits in the emailed sign-in code. Must match Supabase's OTP length
  * (Authentication → Providers → Email → "Email OTP Length").
  */
-const CODE_LENGTH = 8;
+const CODE_LENGTH = 6;
 
 function LoginInner() {
   const rawNext = useSearchParams().get('next');
