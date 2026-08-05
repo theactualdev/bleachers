@@ -22,13 +22,36 @@ const display = Barlow_Condensed({
 const DESCRIPTION = 'Record live grassroots sports statistics from your phone.';
 
 /**
+ * Absolute base for og:image, twitter:image and og:url.
+ *
+ * This has to be right or link previews silently break: Next resolves those
+ * tags against `metadataBase`, so an unset value emits `http://localhost:3000`
+ * URLs into production HTML, which every crawler then fails to fetch. Falling
+ * back to Vercel's own domain variables means a forgotten NEXT_PUBLIC_APP_URL
+ * degrades to the correct domain instead of to localhost.
+ *
+ * This runs in a server component, so the unprefixed VERCEL_* vars are readable.
+ */
+function siteUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  // Vercel's values carry no protocol; a hand-set one might also omit it.
+  const raw =
+    explicit ||
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+    process.env.VERCEL_URL ||
+    'http://localhost:3000';
+  const withScheme = /^https?:\/\//.test(raw) ? raw : `https://${raw}`;
+  return withScheme.replace(/\/+$/, '');
+}
+
+/**
  * Icons and the social card are not declared here on purpose: `icon.png`,
  * `apple-icon.png`, `favicon.ico` and `opengraph-image.png` sit beside this file
  * and Next picks them up by convention, hashing the URLs for cache busting.
  * Declaring `icons` explicitly would override that.
  */
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
+  metadataBase: new URL(siteUrl()),
   title: {
     default: 'Bleachers',
     // Sub-pages set only their own name; this keeps the brand in the tab title.
