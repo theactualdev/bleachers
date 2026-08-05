@@ -21,7 +21,8 @@ export function Nav() {
     pathname.startsWith('/o/') ||
     pathname.startsWith('/join/') ||
     pathname.endsWith('/live') ||
-    pathname === '/login'
+    pathname === '/login' ||
+    pathname === '/waitlist'
   ) {
     return null;
   }

@@ -46,7 +46,9 @@ export default function WaitlistPage() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center p-6">
+    // A <div>, not <main>: the root layout already renders the page's <main>,
+    // and nesting a second one is invalid and confuses screen readers.
+    <div className="flex min-h-dvh flex-col items-center justify-center p-6">
       <div className="mb-8 text-center">
         <div className="bg-brand text-brand-ink font-display shadow-button mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-3xl font-extrabold">
           B
@@ -138,6 +140,6 @@ export default function WaitlistPage() {
           )}
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }
