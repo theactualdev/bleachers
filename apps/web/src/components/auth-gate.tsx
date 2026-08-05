@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/auth-client';
 import { useMe } from '@/lib/hooks';
 import { useActiveOrgId } from '@/lib/org-store';
+import { Logo } from '@/components/ui/logo';
 import { Spinner } from '@/components/ui/misc';
 import { QueryErrorState } from '@/components/ui/query-error';
 
@@ -22,9 +23,7 @@ const SIGNED_OUT_DESTINATION =
 function Loading({ label }: { label: string }) {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6">
-      <div className="bg-brand text-brand-ink font-display shadow-button flex h-14 w-14 items-center justify-center rounded-2xl text-3xl font-extrabold">
-        B
-      </div>
+      <Logo size={56} alt="Bleachers" priority />
       <div className="text-ink-3 flex items-center gap-2 text-sm">
         <Spinner />
         {label}

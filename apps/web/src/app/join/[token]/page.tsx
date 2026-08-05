@@ -11,6 +11,7 @@ import { useSession } from '@/lib/auth-client';
 import { useOrgStore } from '@/lib/org-store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Logo } from '@/components/ui/logo';
 import { Skeleton, Spinner } from '@/components/ui/misc';
 
 type Preview = { valid: false } | { valid: true; orgName: string; role: OrgRole };
@@ -59,9 +60,7 @@ function JoinScreen({ token }: { token: string }) {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-6 p-6">
       <div className="text-center">
-        <div className="bg-brand text-brand-ink font-display shadow-button mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl text-4xl font-extrabold">
-          B
-        </div>
+        <Logo size={64} className="mx-auto mb-4" priority />
         <h1 className="font-display text-ink-1 text-3xl font-bold uppercase tracking-tight">
           Bleachers
         </h1>

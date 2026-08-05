@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input, Label } from '@/components/ui/input';
+import { Logo } from '@/components/ui/logo';
 import { Spinner } from '@/components/ui/misc';
 
 /**
@@ -50,9 +51,7 @@ export default function WaitlistPage() {
     // and nesting a second one is invalid and confuses screen readers.
     <div className="flex min-h-dvh flex-col items-center justify-center p-6">
       <div className="mb-8 text-center">
-        <div className="bg-brand text-brand-ink font-display shadow-button mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-3xl font-extrabold">
-          B
-        </div>
+        <Logo size={56} className="mx-auto" priority />
         <h1 className="font-display text-ink-1 mt-4 text-3xl font-bold uppercase tracking-tight">
           Bleachers
         </h1>

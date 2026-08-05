@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CodeInput } from '@/components/ui/code-input';
 import { Input, Label } from '@/components/ui/input';
+import { Logo } from '@/components/ui/logo';
 import { Spinner } from '@/components/ui/misc';
 import { API_URL } from '@/lib/api';
 
@@ -153,9 +154,7 @@ function LoginInner() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-7 p-6">
       <div className="text-center">
-        <div className="bg-brand text-brand-ink font-display shadow-button mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl text-4xl font-extrabold">
-          B
-        </div>
+        <Logo size={64} className="mx-auto mb-4" priority />
         <h1 className="font-display text-ink-1 text-3xl font-bold uppercase tracking-tight">
           Bleachers
         </h1>
