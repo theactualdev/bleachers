@@ -19,12 +19,41 @@ const display = Barlow_Condensed({
   display: 'swap',
 });
 
+const DESCRIPTION = 'Record live grassroots sports statistics from your phone.';
+
+/**
+ * Icons and the social card are not declared here on purpose: `icon.png`,
+ * `apple-icon.png`, `favicon.ico` and `opengraph-image.png` sit beside this file
+ * and Next picks them up by convention, hashing the URLs for cache busting.
+ * Declaring `icons` explicitly would override that.
+ */
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
-  title: 'Bleachers',
-  description: 'Record live grassroots sports statistics from your phone.',
+  title: {
+    default: 'Bleachers',
+    // Sub-pages set only their own name; this keeps the brand in the tab title.
+    template: '%s · Bleachers',
+  },
+  applicationName: 'Bleachers',
+  description: DESCRIPTION,
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Bleachers' },
+  openGraph: {
+    type: 'website',
+    siteName: 'Bleachers',
+    title: 'Bleachers',
+    description: DESCRIPTION,
+    url: '/',
+    locale: 'en_GB',
+  },
+  twitter: {
+    // No twitter-image.png needed: Next points twitter:image at
+    // opengraph-image.png on its own, so a second copy of the same 1200x630
+    // card would just be dead weight in the repo.
+    card: 'summary_large_image',
+    title: 'Bleachers',
+    description: DESCRIPTION,
+  },
 };
 
 export const viewport: Viewport = {
