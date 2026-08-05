@@ -103,6 +103,44 @@ function confirmationHtml(siteUrl: string) {
 </html>`;
 }
 
+/** Internal heads-up, so it stays plain and scannable rather than branded. */
+function notificationHtml(signup: string, total: number, source: string | null) {
+  return `<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8" /><meta name="color-scheme" content="dark" /></head>
+  <body style="margin:0;padding:24px;background:#0c0a08;
+               font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+           style="max-width:420px;background:#15120e;border:1px solid #2b2520;border-radius:12px;">
+      <tr>
+        <td style="padding:22px 24px;">
+          <p style="margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#6e6a64;">
+            New waitlist signup
+          </p>
+          <p style="margin:10px 0 0;font-size:18px;color:#f7f5f1;font-weight:600;">${signup}</p>
+          <p style="margin:14px 0 0;font-size:14px;color:#a8a49d;">
+            That makes <strong style="color:#ffae35;">${total}</strong> on the list.
+          </p>
+          <p style="margin:6px 0 0;font-size:12px;color:#6e6a64;">Source: ${source ?? 'unknown'}</p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
+async function sendEmail(
+  key: string,
+  payload: { from: string; to: string; subject: string; html: string },
+) {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) console.error('resend failed', payload.subject, res.status, await res.text());
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
@@ -128,6 +166,7 @@ Deno.serve(async (req) => {
   const sql = postgres(Deno.env.get('SUPABASE_DB_URL')!, { prepare: false });
 
   let alreadyOnList: boolean;
+  let total = 0;
   try {
     // ON CONFLICT covers the unique index on lower(email), so signing up twice
     // inserts nothing and returns no row — which is how we know not to send a
@@ -140,6 +179,12 @@ Deno.serve(async (req) => {
       returning id
     `;
     alreadyOnList = inserted.length === 0;
+    // Read the running total on the same connection, before it is closed —
+    // it is the one number worth having in the notification.
+    if (!alreadyOnList) {
+      const [row] = await sql`select count(*)::int as count from public.waitlist_signup`;
+      total = row?.count ?? 0;
+    }
   } catch (err) {
     console.error('waitlist insert failed', err);
     return json({ error: "Couldn't save that just now — try again." }, 500);
@@ -154,19 +199,28 @@ Deno.serve(async (req) => {
     const from = Deno.env.get('WAITLIST_FROM');
     const siteUrl = Deno.env.get('WAITLIST_SITE_URL') ?? 'https://bleacherss.vercel.app';
 
+    // Overridable, but defaulted so notifications work without another secret.
+    const notify = Deno.env.get('WAITLIST_NOTIFY') ?? 'olayinkacodes@gmail.com';
+
     if (key && from) {
       try {
-        const res = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        // Concurrent, and allSettled: one failing send must not swallow the
+        // other, and neither may fail the signup.
+        await Promise.allSettled([
+          sendEmail(key, {
             from,
             to: email,
             subject: "You're on the Bleachers list",
             html: confirmationHtml(siteUrl),
           }),
-        });
-        if (!res.ok) console.error('resend failed', res.status, await res.text());
+          sendEmail(key, {
+            from,
+            to: notify,
+            // The address in the subject makes the inbox scannable at a glance.
+            subject: `New waitlist signup — ${email}`,
+            html: notificationHtml(email, total, source),
+          }),
+        ]);
       } catch (err) {
         console.error('resend threw', err);
       }
