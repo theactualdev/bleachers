@@ -47,7 +47,12 @@ function TeamsScreen() {
             }
           />
         ) : (
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2.5">
+            {/*
+              flex + gap, not space-y: `space-y` applies margin-top, which does
+              nothing on the inline <a> that Link renders, so the cards sat
+              flush. Flex items are blockified, so gap always applies.
+            */}
             {teams?.map((t) => (
               <Link key={t.id} href={`/teams/${t.id}`}>
                 <Card className="ease-spring flex items-center gap-3 p-3 transition-all duration-200 active:scale-[0.99]">

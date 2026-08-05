@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useMemo, useState } from 'react';
 import { UserPlus } from 'lucide-react';
 import { AuthGate } from '@/components/auth-gate';
 import { PageHeader } from '@/components/page-header';
@@ -93,6 +93,26 @@ function TeamProfile({ id }: { id: string }) {
 
   const rosterIds = new Set(roster?.map((r) => r.playerId) ?? []);
 
+  /**
+   * Shirt-number order, the way a team sheet reads. Players without a number
+   * fall to the bottom rather than sorting as zero, then alphabetically.
+   *
+   * Sorted into a copy on purpose: `sort` mutates in place, and `roster` is the
+   * array React Query is caching.
+   */
+  const sortedRoster = useMemo(
+    () =>
+      [...(roster ?? [])].sort((a, b) => {
+        // Jersey numbers are stored as strings so "00" and "007" round-trip, so
+        // compare them numerically — sorting the strings would put "10" before
+        // "2". The schema guarantees 1–3 digits, so Number() is safe here.
+        const an = a.jerseyNumber == null ? Number.POSITIVE_INFINITY : Number(a.jerseyNumber);
+        const bn = b.jerseyNumber == null ? Number.POSITIVE_INFINITY : Number(b.jerseyNumber);
+        return an === bn ? a.player.name.localeCompare(b.player.name) : an - bn;
+      }),
+    [roster],
+  );
+
   // Available players + a subtext of the other teams each one already plays for.
   const options: SelectOption[] = (players ?? [])
     .filter((p) => !rosterIds.has(p.id))
@@ -149,7 +169,7 @@ function TeamProfile({ id }: { id: string }) {
           <EmptyState title="Empty roster" hint="Add players above to build this team." />
         ) : (
           <div className="space-y-2">
-            {roster?.map((r) => {
+            {sortedRoster.map((r) => {
               const pending = r.id.startsWith('optimistic-');
               return (
                 <Card

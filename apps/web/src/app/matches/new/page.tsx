@@ -104,7 +104,7 @@ function CreateMatchFlow() {
                 />
                 <NewTeamTile onCreated={() => refetch()} />
                 <Button className="w-full" disabled={!canNextTeams} onClick={() => setStep(1)}>
-                  Next: lineups <ChevronRight className="h-4 w-4" />
+                  Next: Lineups <ChevronRight className="h-4 w-4" />
                 </Button>
               </>
             )}
@@ -359,13 +359,17 @@ function TierButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
+      // These act as a radio group, so the selected one needs to be announced,
+      // not just coloured — the previous styling carried the whole meaning.
+      aria-pressed={active}
       className={cn(
         'ease-spring rounded-md border p-4 text-left transition-all duration-200 active:scale-[0.98]',
-        active ? 'border-brand/50 bg-brand/10' : 'glass',
+        active ? 'border-brand ring-brand/45 bg-brand/10 ring-2' : 'glass',
       )}
     >
-      <div className="text-ink-1 font-semibold">{title}</div>
+      <div className={cn('font-semibold', active ? 'text-brand' : 'text-ink-1')}>{title}</div>
       <div className="text-ink-3 text-xs">{hint}</div>
     </button>
   );
