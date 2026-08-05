@@ -66,7 +66,10 @@ export const metadata: Metadata = {
     siteName: 'Bleachers',
     title: 'Bleachers',
     description: DESCRIPTION,
-    url: '/',
+    // Deliberately no `url`. Setting it in the root layout stamped every page
+    // with the site root as its canonical, so sharing /waitlist made crawlers
+    // key the card on "/" and serve whatever they had cached for it. With none
+    // set, they use the URL actually shared.
     locale: 'en_GB',
   },
   twitter: {
