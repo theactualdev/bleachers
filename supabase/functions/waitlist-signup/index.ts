@@ -56,10 +56,10 @@ function confirmationHtml(siteUrl: string) {
               <td style="padding:32px 28px;">
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td style="background:#ffae35;border-radius:10px;width:44px;height:44px;"
-                        align="center" valign="middle">
-                      <span style="font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;
-                                   font-size:26px;font-weight:800;color:#1a1206;">B</span>
+                    <td align="center" valign="middle">
+                      <img src="${siteUrl}/icons/icon-192.png" width="44" height="44"
+                           alt="Bleachers"
+                           style="width:44px;height:44px;border-radius:10px;display:block;border:0;" />
                     </td>
                   </tr>
                 </table>
@@ -197,7 +197,12 @@ Deno.serve(async (req) => {
     // stored, and that is the part that actually matters.
     const key = Deno.env.get('RESEND_API_KEY');
     const from = Deno.env.get('WAITLIST_FROM');
-    const siteUrl = Deno.env.get('WAITLIST_SITE_URL') ?? 'https://bleacherss.vercel.app';
+    // Trailing slash stripped: the logo is built as `${siteUrl}/icons/...`, and
+    // a doubled slash 308-redirects, which email clients do not reliably follow.
+    const siteUrl = (Deno.env.get('WAITLIST_SITE_URL') ?? 'https://bleacherss.vercel.app').replace(
+      /\/+$/,
+      '',
+    );
 
     // Overridable, but defaulted so notifications work without another secret.
     const notify = Deno.env.get('WAITLIST_NOTIFY') ?? 'olayinkacodes@gmail.com';
