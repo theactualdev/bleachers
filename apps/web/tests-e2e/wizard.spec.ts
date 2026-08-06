@@ -83,7 +83,7 @@ test('fresh user completes the create-match wizard end to end', async ({ page })
   await homeSection.getByRole('button', { name: 'E2E Home FC' }).click();
   await awaySection.getByRole('button', { name: 'E2E Away FC' }).click();
 
-  await clickUntil(page, 'Next: lineups', () =>
+  await clickUntil(page, 'Next: Lineups', () =>
     expect(page.getByRole('button', { name: 'Next', exact: true })).toBeVisible({
       timeout: 5_000,
     }),
