@@ -33,6 +33,11 @@ export class SharingService {
         statTier: match.statTier,
         venue: match.venue,
         scheduledAt: match.scheduledAt.toISOString(),
+        // Clock state, so the public page can derive a live minute of its own
+        // instead of showing a frozen number (see sport-engine clock.ts).
+        periodStartedAt: match.periodStartedAt?.toISOString() ?? null,
+        pausedElapsedMs: match.pausedElapsedMs,
+        currentPeriod: match.currentPeriod,
       },
       homeTeam: {
         id: match.homeTeam.id,

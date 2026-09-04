@@ -1,9 +1,14 @@
+'use client';
+
+import { use } from 'react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import { getEventType, getSportConfig } from '@bleachers/sport-engine';
+import { useQuery } from '@tanstack/react-query';
+import { deriveElapsedMs, getEventType, getSportConfig } from '@bleachers/sport-engine';
 import type { MatchStats, Sport } from '@bleachers/types';
 
 import { API_URL } from '@/lib/api-url';
+import { isInPlay, useNow } from '@/lib/use-now';
+import { formatClock } from '@/lib/utils';
 
 interface PublicTeam {
   id: string;
@@ -13,17 +18,20 @@ interface PublicTeam {
 }
 
 interface PublicMatch {
-  match: { id: string; sport: Sport; status: string; venue: string | null; scheduledAt: string };
+  match: {
+    id: string;
+    sport: Sport;
+    status: string;
+    venue: string | null;
+    scheduledAt: string;
+    periodStartedAt: string | null;
+    pausedElapsedMs: number;
+    currentPeriod: number;
+  };
   homeTeam: PublicTeam;
   awayTeam: PublicTeam;
   playerNames: Record<string, string>;
   stats: MatchStats;
-}
-
-async function getMatch(id: string): Promise<PublicMatch | null> {
-  const res = await fetch(`${API_URL}/api/public/matches/${id}`, { cache: 'no-store' });
-  if (!res.ok) return null;
-  return res.json();
 }
 
 function minute(ms: number): string {
@@ -50,10 +58,23 @@ function TeamMark({ team, className }: { team: PublicTeam; className: string }) 
   );
 }
 
-export default async function PublicMatchPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const data = await getMatch(id);
-  if (!data) notFound();
+export default function PublicMatchPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const { data, isLoading } = useQuery({
+    queryKey: ['public-match', id],
+    queryFn: async (): Promise<PublicMatch | null> => {
+      const res = await fetch(`${API_URL}/api/public/matches/${id}`, { cache: 'no-store' });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    // The whole point of this page: a shared link that moves on its own.
+    refetchInterval: (q) => (q.state.data && isInPlay(q.state.data.match.status) ? 10_000 : false),
+  });
+  const now = useNow(data?.match.status === 'LIVE');
+
+  if (isLoading) return <div className="text-ink-3 p-8 text-center text-sm">Loading match…</div>;
+  if (!data)
+    return <div className="text-ink-3 p-8 text-center text-sm">This match could not be found.</div>;
 
   const { match, homeTeam, awayTeam, playerNames, stats } = data;
   const config = getSportConfig(match.sport);
@@ -73,7 +94,11 @@ export default async function PublicMatchPage({ params }: { params: Promise<{ id
           }`}
         >
           {live && <span className="bg-live h-1.5 w-1.5 animate-pulse rounded-full" />}
-          {match.status}
+          {isInPlay(match.status)
+            ? `${formatClock(deriveElapsedMs(match, now))} · ${config.periods.periodLabel} ${match.currentPeriod}`
+            : match.status === 'COMPLETED'
+              ? 'FT'
+              : match.status}
         </span>
       </header>
 
