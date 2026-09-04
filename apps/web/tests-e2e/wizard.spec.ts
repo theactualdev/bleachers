@@ -108,9 +108,20 @@ test('fresh user completes the create-match wizard end to end', async ({ page })
   await expect(page.getByText('E2E Home FC').first()).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('E2E Away FC').first()).toBeVisible();
 
-  // Full time is a two-tap confirm, then lands on the match detail page.
-  await page.getByRole('button', { name: 'Full time' }).click();
-  await page.getByRole('button', { name: 'Confirm FT' }).click();
+  // Full time is a two-tap confirm whose armed state expires on its own: the live page runs
+  // `setTimeout(() => setConfirming(null), 4000)`, so "Confirm FT" reverts to "Full time" four
+  // seconds after the first tap. A bare click pair would therefore strand the test whenever the
+  // gap between the two taps outruns that window — the exact failure mode `clickUntil` exists to
+  // rule out. Drive both taps as one retried unit: re-arming is idempotent, and the confirming
+  // tap can only ever fire against a match still in play, because the successful one navigates
+  // away and ends the retry.
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Full time' }).click({ timeout: 2_000 });
+    await page.getByRole('button', { name: 'Confirm FT' }).click({ timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
+
+  // The route change is a client-side push into a page the dev server may still need to compile,
+  // so it sits outside the retry — a slow-but-successful navigation must not re-trigger the taps.
   await page.waitForURL(/\/matches\/[^/]+$/, { timeout: 30_000 });
   // The detail scoreboard prints the period and the clock in one label ("Football · FT"), so
   // there is no element whose text is exactly "FT" — anchor on the clock half of that label.

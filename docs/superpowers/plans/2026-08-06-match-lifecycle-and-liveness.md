@@ -1396,6 +1396,41 @@ git push origin main
 
 After CI goes green and both platforms deploy (confirm with `curl -s https://bleachers-production.up.railway.app/health` — the `commit` field must equal the pushed SHA — and the SW cache stamp on `https://bleacherss.vercel.app/sw.js`): start a real match on a phone, lock the phone for a minute, unlock — the clock must show the true elapsed minute. Open the `/m/:id` link on a second device and watch a recorded goal appear without touching the page. Then tap Full time and confirm the dashboard moves the match out of "Live now".
 
+> **Status — Steps 2-4 are NOT done, and are blocked on infrastructure, not on code.**
+> Recorded here so the Phase A commits are not mistaken for a green gate or a shipped deploy.
+>
+> - **Step 2 is red, for a reason outside this plan.** `pnpm format:check`, `pnpm lint`,
+>   `pnpm typecheck` and `pnpm build` pass. `pnpm test` does not: 5 of the API's 11 test files
+>   (`events`, `media`, `orgs`, `ownership`, `registration` — all `*.integration.spec.ts`) fail in
+>   `beforeAll` on `prisma.$connect()`. The hosted Supabase dev project the whole stack points at
+>   no longer exists: its ref does not resolve (`ENOTFOUND`, identically to a made-up ref, while
+>   `supabase.com` and the shared pooler host both resolve fine), and the pooler rejects it with
+>   a `FATAL` "tenant/user not found". The Railway API is gone with it — `/health` returns
+>   Railway's own `Application not found` 404. This predates Phase A — no commit in it touches
+>   the API — but it means the Step 2 gate cannot be run green from this working tree, and CI,
+>   which runs the same suite against the same project via repository secrets, will fail the
+>   same way.
+> - **The e2e has never been executed.** `playwright.config.ts` gates `wizard.spec.ts` on the
+>   `setup` project, and `tests-e2e/setup/auth.setup.ts` creates its user through the Supabase
+>   auth admin API of that same dead project, so the wizard spec cannot run until the project is
+>   restored. The FT steps are verified against the source, not against a browser:
+>   `live/page.tsx` renders `Confirm FT`/`Full time` from one button and pushes to
+>   `/matches/:id` on success; `Scoreboard` renders `{periodLabel} · {clockLabel}` in a single
+>   span and `matches/[id]/page.tsx` passes `clockLabel: 'FT'` for `COMPLETED` with
+>   `periodLabel: config.name` (`'Football'`) — hence `/·\s*FT$/` rather than the plan's
+>   `getByText('FT', { exact: true })`, which matches no element.
+> - **Step 3's push and all of Step 4 are outstanding.** Phase A is committed but unpushed, so no
+>   CI run and no deploy exist for any of it, and the post-deploy phone checks cannot have
+>   happened. Do not tick Step 4 on the strength of local runs.
+>
+> To unblock: point `DATABASE_URL` / `DIRECT_URL` / `SUPABASE_URL` /
+> `SUPABASE_SERVICE_ROLE_KEY` (and the web app's `NEXT_PUBLIC_SUPABASE_*`) at a Supabase project
+> that still exists, in `apps/api/.env` and in the repository secrets, run
+> `pnpm --filter @bleachers/api prisma:deploy`, then re-run Step 2 in full and the Playwright
+> suite before pushing. The local `docker-compose` Postgres is not a substitute: the integration
+> tests and the e2e setup both mint users through the Supabase auth admin API and rely on the
+> signup trigger to create each user's personal org.
+
 ---
 
 ## Self-review notes
