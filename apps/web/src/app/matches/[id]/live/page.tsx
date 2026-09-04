@@ -2,10 +2,12 @@
 
 import { use, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Pause, Play, RotateCcw, Share2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Flag, Pause, Play, RotateCcw, Share2, XCircle } from 'lucide-react';
 import type { ChainPrompt, SportConfig } from '@bleachers/sport-engine';
 import {
   canRecordInteractive,
+  deriveElapsedMs,
   getChainedPrompts,
   getEventType,
   getSportConfig,
@@ -13,6 +15,7 @@ import {
 import type { MatchEvent, MatchSide, TeamColors } from '@bleachers/types';
 import { AuthGate } from '@/components/auth-gate';
 import { useMatch, useMatchClock, usePlayers } from '@/lib/hooks';
+import { isInPlay, useNow } from '@/lib/use-now';
 import { useLiveScoring } from '@/lib/scoring';
 import { Scoreboard } from '@/components/scoring/scoreboard';
 import { EventPicker } from '@/components/scoring/event-picker';
@@ -30,6 +33,7 @@ interface Selection {
 }
 
 function LiveScoring({ id }: { id: string }) {
+  const router = useRouter();
   const { data: match, isLoading, isError, error, refetch } = useMatch(id);
   const { data: players } = usePlayers();
   const sport = match?.sport ?? 'FOOTBALL';
@@ -45,17 +49,26 @@ function LiveScoring({ id }: { id: string }) {
    * endpoint, which stays status-exempt by design (late syncs are legitimate), so nothing else
    * would stop a tap after full time.
    */
-  const canScore = canRecordInteractive(match?.status ?? 'SCHEDULED');
+  const status = match?.status ?? 'SCHEDULED';
+  const canScore = canRecordInteractive(status);
 
-  // Simple match clock (client-side): a stopwatch the scorer controls.
-  const [running, setRunning] = useState(true);
-  const [elapsedMs, setElapsedMs] = useState(0);
-  const [period, setPeriod] = useState(1);
+  /**
+   * The clock is derived, never counted: elapsed time is re-computed each second from the
+   * server's timestamps, so a reload, a locked phone or a throttled tab resumes on the true
+   * minute instead of 00:00.
+   */
+  const now = useNow(status === 'LIVE');
+  const elapsedMs = match ? deriveElapsedMs(match, now) : 0;
+  const period = match?.currentPeriod ?? 1;
+  const running = status === 'LIVE';
+
+  // Two-tap confirms for destructive lifecycle actions.
+  const [confirming, setConfirming] = useState<null | 'END' | 'ABANDON'>(null);
   useEffect(() => {
-    if (!running) return;
-    const t = setInterval(() => setElapsedMs((e) => e + 1000), 1000);
-    return () => clearInterval(t);
-  }, [running]);
+    if (!confirming) return;
+    const t = setTimeout(() => setConfirming(null), 4000);
+    return () => clearTimeout(t);
+  }, [confirming]);
 
   const [selection, setSelection] = useState<Selection | null>(null);
   const [chain, setChain] = useState<{
@@ -162,11 +175,43 @@ function LiveScoring({ id }: { id: string }) {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={() => setRunning((r) => !r)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={running ? 'Pause match' : 'Resume match'}
+            disabled={clock.isPending || !isInPlay(status)}
+            onClick={() => clock.mutate({ action: running ? 'PAUSE' : 'RESUME' })}
+          >
             {running ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
           </Button>
           <Button variant="ghost" size="sm" disabled={!canScore} onClick={() => undoLast()}>
             <RotateCcw className="h-4 w-4" /> Undo
+          </Button>
+          <Button
+            variant={confirming === 'END' ? 'brand' : 'ghost'}
+            size="sm"
+            disabled={clock.isPending || !isInPlay(status)}
+            onClick={() => {
+              if (confirming !== 'END') return setConfirming('END');
+              clock.mutate({ action: 'END' }, { onSuccess: () => router.push(`/matches/${id}`) });
+            }}
+          >
+            <Flag className="h-4 w-4" /> {confirming === 'END' ? 'Confirm FT' : 'Full time'}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={confirming === 'ABANDON' ? 'Confirm abandon' : 'Abandon match'}
+            disabled={clock.isPending || status === 'COMPLETED' || status === 'ABANDONED'}
+            onClick={() => {
+              if (confirming !== 'ABANDON') return setConfirming('ABANDON');
+              clock.mutate(
+                { action: 'ABANDON' },
+                { onSuccess: () => router.push(`/matches/${id}`) },
+              );
+            }}
+          >
+            <XCircle className={cn('h-4 w-4', confirming === 'ABANDON' && 'text-negative')} />
           </Button>
           <Link
             href={`/m/${id}`}
@@ -196,13 +241,13 @@ function LiveScoring({ id }: { id: string }) {
         {!canScore && (
           <div className="space-y-2">
             <p className="glass text-ink-2 rounded-md px-3 py-2.5 text-center text-sm">
-              {match.status === 'COMPLETED'
+              {status === 'COMPLETED'
                 ? 'Full time — scoring is closed for this match.'
-                : match.status === 'ABANDONED'
+                : status === 'ABANDONED'
                   ? 'This match was abandoned — scoring is closed.'
                   : 'Kick off to start recording events.'}
             </p>
-            {match.status === 'SCHEDULED' && (
+            {status === 'SCHEDULED' && (
               <Button
                 size="lg"
                 className="w-full"
@@ -223,9 +268,10 @@ function LiveScoring({ id }: { id: string }) {
           {Array.from({ length: config.periods.regulationCount }, (_, i) => i + 1).map((p) => (
             <button
               key={p}
-              onClick={() => setPeriod(p)}
+              disabled={clock.isPending || !isInPlay(status)}
+              onClick={() => clock.mutate({ action: 'SET_PERIOD', period: p })}
               className={cn(
-                'ease-spring rounded-pill h-9 px-4 text-sm font-semibold transition-all duration-200 active:scale-95',
+                'ease-spring rounded-pill h-9 px-4 text-sm font-semibold transition-all duration-200 active:scale-95 disabled:pointer-events-none disabled:opacity-40',
                 period === p
                   ? 'bg-brand text-brand-ink shadow-button'
                   : 'glass text-ink-2 hover:text-ink-1',
