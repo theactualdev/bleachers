@@ -257,10 +257,17 @@ function LiveScoring({ id }: { id: string }) {
                 <Play className="h-5 w-5" /> Kick off
               </Button>
             )}
-            {clock.isError && (
-              <p className="text-negative text-center text-xs">{clock.error.message}</p>
-            )}
           </div>
+        )}
+
+        {/*
+         * Outside the `!canScore` branch on purpose: every lifecycle control (pause, resume,
+         * period, full time, abandon) is only tappable while the match IS in play, which is
+         * exactly when that branch is unmounted. Nested here, a failed transition would be
+         * silent — no toast layer exists to catch it.
+         */}
+        {clock.isError && (
+          <p className="text-negative text-center text-xs">{clock.error.message}</p>
         )}
 
         {/* Period selector */}
