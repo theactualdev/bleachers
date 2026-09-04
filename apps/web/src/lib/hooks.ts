@@ -2,6 +2,7 @@
 
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
+  ClockActionRequest,
   CreateMatchInput,
   CreateTeamPlayerInput,
   Match,
@@ -250,6 +251,23 @@ export function useCreateMatch() {
   return useMutation({
     mutationFn: (input: CreateMatchInput) => apiPost<MatchDetail>('/api/matches', input),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['matches', orgId] }),
+  });
+}
+
+/**
+ * Lifecycle/clock transitions (kickoff, pause, resume, end, abandon, period). The server owns
+ * the math and the legality of each transition; we post the intent and refetch.
+ */
+export function useMatchClock(id: string) {
+  const qc = useQueryClient();
+  const orgId = useActiveOrgId();
+  return useMutation({
+    mutationFn: (input: ClockActionRequest) => apiPost<Match>(`/api/matches/${id}/clock`, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['match', orgId, id] });
+      qc.invalidateQueries({ queryKey: ['matches', orgId] });
+      qc.invalidateQueries({ queryKey: ['match-stats', orgId, id] });
+    },
   });
 }
 

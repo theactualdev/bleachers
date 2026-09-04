@@ -4,10 +4,15 @@ import { use, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Pause, Play, RotateCcw, Share2 } from 'lucide-react';
 import type { ChainPrompt, SportConfig } from '@bleachers/sport-engine';
-import { getChainedPrompts, getEventType, getSportConfig } from '@bleachers/sport-engine';
+import {
+  canRecordInteractive,
+  getChainedPrompts,
+  getEventType,
+  getSportConfig,
+} from '@bleachers/sport-engine';
 import type { MatchEvent, MatchSide, TeamColors } from '@bleachers/types';
 import { AuthGate } from '@/components/auth-gate';
-import { useMatch, usePlayers } from '@/lib/hooks';
+import { useMatch, useMatchClock, usePlayers } from '@/lib/hooks';
 import { useLiveScoring } from '@/lib/scoring';
 import { Scoreboard } from '@/components/scoring/scoreboard';
 import { EventPicker } from '@/components/scoring/event-picker';
@@ -32,6 +37,15 @@ function LiveScoring({ id }: { id: string }) {
   const config = useMemo(() => getSportConfig(sport), [sport]);
 
   const { events, stats, record, undoLast } = useLiveScoring(id, sport, tier);
+  const clock = useMatchClock(id);
+
+  /**
+   * Recording is only legitimate mid-match — the same predicate the API enforces on interactive
+   * record/undo. It has to be checked here too: taps reach the server through the offline batch
+   * endpoint, which stays status-exempt by design (late syncs are legitimate), so nothing else
+   * would stop a tap after full time.
+   */
+  const canScore = canRecordInteractive(match?.status ?? 'SCHEDULED');
 
   // Simple match clock (client-side): a stopwatch the scorer controls.
   const [running, setRunning] = useState(true);
@@ -84,7 +98,7 @@ function LiveScoring({ id }: { id: string }) {
   const awayColor = awayColors.primary;
 
   async function onPickEvent(eventTypeId: string) {
-    if (!selection) return;
+    if (!selection || !canScore) return;
     const def = getEventType(config, eventTypeId);
     await record({
       type: eventTypeId,
@@ -105,7 +119,7 @@ function LiveScoring({ id }: { id: string }) {
   }
 
   async function onChainAnswer(playerId: string) {
-    if (!chain) return;
+    if (!chain || !canScore) return;
     const side =
       chain.prompt.side === 'SAME'
         ? chain.parentSide
@@ -151,7 +165,7 @@ function LiveScoring({ id }: { id: string }) {
           <Button variant="ghost" size="sm" onClick={() => setRunning((r) => !r)}>
             {running ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => undoLast()}>
+          <Button variant="ghost" size="sm" disabled={!canScore} onClick={() => undoLast()}>
             <RotateCcw className="h-4 w-4" /> Undo
           </Button>
           <Link
@@ -177,6 +191,32 @@ function LiveScoring({ id }: { id: string }) {
           clockLabel={formatClock(elapsedMs)}
           periodLabel={`${config.periods.periodLabel} ${period}`}
         />
+
+        {/* Scoring is closed unless the match is in play. Say why, and offer the way out. */}
+        {!canScore && (
+          <div className="space-y-2">
+            <p className="glass text-ink-2 rounded-md px-3 py-2.5 text-center text-sm">
+              {match.status === 'COMPLETED'
+                ? 'Full time — scoring is closed for this match.'
+                : match.status === 'ABANDONED'
+                  ? 'This match was abandoned — scoring is closed.'
+                  : 'Kick off to start recording events.'}
+            </p>
+            {match.status === 'SCHEDULED' && (
+              <Button
+                size="lg"
+                className="w-full"
+                disabled={clock.isPending}
+                onClick={() => clock.mutate({ action: 'KICKOFF' })}
+              >
+                <Play className="h-5 w-5" /> Kick off
+              </Button>
+            )}
+            {clock.isError && (
+              <p className="text-negative text-center text-xs">{clock.error.message}</p>
+            )}
+          </div>
+        )}
 
         {/* Period selector */}
         <div className="flex items-center justify-center gap-2">
@@ -204,6 +244,7 @@ function LiveScoring({ id }: { id: string }) {
             logo={match.homeTeam.logo}
             colors={homeColors}
             players={lineupFor('HOME')}
+            disabled={!canScore}
             onSelect={(sel) => setSelection(sel)}
           />
           <SideColumn
@@ -212,6 +253,7 @@ function LiveScoring({ id }: { id: string }) {
             logo={match.awayTeam.logo}
             colors={awayColors}
             players={lineupFor('AWAY')}
+            disabled={!canScore}
             onSelect={(sel) => setSelection(sel)}
           />
         </div>
@@ -249,6 +291,7 @@ function SideColumn({
   logo,
   colors,
   players,
+  disabled,
   onSelect,
 }: {
   side: MatchSide;
@@ -256,6 +299,7 @@ function SideColumn({
   logo?: string | null;
   colors: TeamColors;
   players: { playerId: string; name: string; jersey: string | null; photo: string | null }[];
+  disabled: boolean;
   onSelect: (sel: Selection) => void;
 }) {
   return (
@@ -265,8 +309,9 @@ function SideColumn({
         <span className="text-ink-1 truncate text-sm font-semibold">{teamName}</span>
       </div>
       <button
+        disabled={disabled}
         onClick={() => onSelect({ side, playerId: null, label: `${teamName} · team event` })}
-        className="text-ink-3 hover:bg-glass hover:text-ink-2 border-hairline w-full rounded-md border border-dashed py-2 text-xs font-medium transition-colors"
+        className="text-ink-3 hover:bg-glass hover:text-ink-2 border-hairline w-full rounded-md border border-dashed py-2 text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-40"
       >
         Team event
       </button>
@@ -274,8 +319,9 @@ function SideColumn({
         {players.map((p) => (
           <button
             key={p.playerId}
+            disabled={disabled}
             onClick={() => onSelect({ side, playerId: p.playerId, label: `${p.name}` })}
-            className="glass ease-spring flex h-24 flex-col items-center justify-center gap-1 rounded-md px-1 text-center transition-all duration-200 active:scale-95"
+            className="glass ease-spring flex h-24 flex-col items-center justify-center gap-1 rounded-md px-1 text-center transition-all duration-200 active:scale-95 disabled:pointer-events-none disabled:opacity-40"
           >
             <Avatar src={p.photo} name={p.jersey ?? p.name} size="sm" />
             {p.jersey && (

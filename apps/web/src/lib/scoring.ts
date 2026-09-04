@@ -11,7 +11,7 @@ import type {
 } from '@bleachers/types';
 import { getSportConfig, reduceMatch } from '@bleachers/sport-engine';
 import type { Sport } from '@bleachers/types';
-import { apiPost } from './api';
+import { ApiError, apiPost } from './api';
 import { enqueueEvent, flushQueue, queuedForMatch, queueSize } from './offline/queue';
 import { useConnectivity } from './store';
 import { uuid } from './utils';
@@ -105,6 +105,9 @@ export function useLiveScoring(matchId: string, sport: Sport, tier: StatTier) {
     const last = active[active.length - 1];
     if (!last) return;
 
+    // Remember what the overlay held for this event so a server refusal can be undone exactly.
+    const priorOverlay = overlay[last.id];
+
     // Optimistically void locally.
     setOverlay((prev) => ({
       ...prev,
@@ -126,12 +129,24 @@ export function useLiveScoring(matchId: string, sport: Sport, tier: StatTier) {
       try {
         await apiPost(`/api/matches/${matchId}/events/undo`, {});
         void qc.invalidateQueries({ queryKey: ['match-events', matchId] });
-      } catch {
-        /* leave optimistic void in place; a later refetch reconciles */
+      } catch (err) {
+        // A server refusal is final — most often "the match is no longer in play". The overlay
+        // wins over server data on merge, so a refetch would NOT reconcile it: leaving the void
+        // in place would show a score the server does not have until the next full reload. Roll
+        // it back instead. A network failure is transient, so keep the void and let the next
+        // refetch settle it.
+        if (err instanceof ApiError) {
+          setOverlay((prev) => {
+            const next = { ...prev };
+            if (priorOverlay) next[last.id] = priorOverlay;
+            else delete next[last.id];
+            return next;
+          });
+        }
       }
     }
     setPending(await queueSize());
-  }, [events, matchId, qc, setPending]);
+  }, [events, matchId, overlay, qc, setPending]);
 
   return { events, stats, record, undoLast, syncNow };
 }

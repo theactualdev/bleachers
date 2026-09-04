@@ -751,7 +751,7 @@ post-match corrections and late syncs are legitimate."
 - Produces (used by Tasks 5–7):
   - `useNow(active: boolean): number` — epoch ms, ticking every second while `active`, frozen otherwise
   - `isInPlay(status: string): boolean` — LIVE or PAUSED
-  - `useMatchClock(id: string)` — mutation; `mutate({ action, period? })`; invalidates `['match', orgId, id]`, `['matches', orgId]`, `['match-stats', orgId, id]`
+  - `useMatchClock(id: string)` — mutation; `mutate({ action, period? })`; invalidates `['match', orgId, id]`, `['matches', orgId]`, `['match-stats', orgId, id]` — **already implemented** (landed with the Task 3 review fix, which needed a kickoff action once the tap grid became status-gated); verify it matches this shape rather than re-adding it
   - `useMatch(id, opts?: { refetchMs?: number })`, `useMatchStats(id, opts?: { refetchMs?: number })` — polling opt-in
   - `useMatches()` — self-polling every 15 s whenever its own data contains a LIVE match
 
@@ -996,7 +996,7 @@ Import `isInPlay` from `@/lib/use-now`. After the Undo button, add Full time + A
 
 - [ ] **Step 3: Kickoff state for scheduled matches, period via API**
 
-Immediately after the `<Scoreboard … />` element, add a kickoff banner shown only pre-start:
+A kickoff banner already sits immediately after the `<Scoreboard … />` element (Task 3 review fix), inside the `!canScore` block that also explains COMPLETED/ABANDONED. Keep that block and fold the derived status into it rather than adding a second one; the shape it should end up as:
 
 ```tsx
 {
@@ -1030,7 +1030,7 @@ The `Scoreboard` call keeps `clockLabel={formatClock(elapsedMs)}` and `periodLab
 # WEB_ORIGIN="http://localhost:3000,http://localhost:3007"
 ```
 
-Manual pass (or the browser pane): create a match with "Start match now" → clock ticks from 00:00; reload the page → clock continues (does not reset); Pause → clock freezes, badge state changes; Resume → continues; Full time (two taps) → lands on `/matches/:id`; back on the live URL the tap grid must refuse recording (server 400 surfaces via the existing error path). `pnpm --filter @bleachers/web build` compiles.
+Manual pass (or the browser pane): create a match with "Start match now" → clock ticks from 00:00; reload the page → clock continues (does not reset); Pause → clock freezes, badge state changes; Resume → continues; Full time (two taps) → lands on `/matches/:id`; back on the live URL the tap grid and Undo must be disabled and the page must say scoring is closed. Note the refusal is client-side (`canScore` in the page, already in place): taps reach the server through `POST /api/sync/events`, which stays status-exempt by design, so no server 400 arrives for a tap — only interactive `record`/`undo` are guarded server-side. `pnpm --filter @bleachers/web build` compiles.
 
 - [ ] **Step 5: Commit**
 
