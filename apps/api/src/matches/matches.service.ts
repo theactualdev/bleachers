@@ -1,6 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import type { CreateMatchInput, UpdateMatchInput } from '@bleachers/types';
-import { hasSportConfig } from '@bleachers/sport-engine';
+import type { ClockActionRequest, CreateMatchInput, UpdateMatchInput } from '@bleachers/types';
+import {
+  applyClockAction,
+  ClockTransitionError,
+  getSportConfig,
+  hasSportConfig,
+} from '@bleachers/sport-engine';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MembershipService } from '../orgs/membership.service.js';
 import { toLineup, toMatch, toTeam } from '../common/serialize.js';
@@ -98,6 +103,9 @@ export class MatchesService {
           venue: input.venue ?? null,
           scheduledAt,
           status: input.startNow ? 'LIVE' : 'SCHEDULED',
+          periodStartedAt: input.startNow ? new Date() : null,
+          pausedElapsedMs: 0,
+          currentPeriod: 1,
           statTier: input.statTier,
           competitionId: input.competitionId ?? null,
           organizationId: orgId,
@@ -143,14 +151,46 @@ export class MatchesService {
     return toMatch(match);
   }
 
-  /** Convenience transitions used by the live-scoring screen. */
-  async setStatus(
-    userId: string,
-    id: string,
-    status: 'LIVE' | 'PAUSED' | 'COMPLETED' | 'ABANDONED',
-  ) {
+  /**
+   * All lifecycle/clock transitions go through here so the clock math is
+   * applied server-side and atomically with the status change. Invalid
+   * transitions surface as 400s with the engine's message.
+   */
+  async clock(userId: string, id: string, input: ClockActionRequest) {
     await this.members.assertMember(userId, await this.orgOf(id), 'SCORER');
-    const match = await this.prisma.match.update({ where: { id }, data: { status } });
-    return toMatch(match);
+    const m = await this.prisma.match.findUnique({ where: { id } });
+    if (!m) throw new NotFoundException('Match not found');
+
+    const config = getSportConfig(m.sport);
+    const maxPeriod = config.periods.regulationCount + config.periods.extraTimeCount + 1;
+
+    let next;
+    try {
+      next = applyClockAction(
+        {
+          status: m.status,
+          periodStartedAt: m.periodStartedAt?.toISOString() ?? null,
+          pausedElapsedMs: m.pausedElapsedMs,
+          currentPeriod: m.currentPeriod,
+        },
+        input,
+        Date.now(),
+        maxPeriod,
+      );
+    } catch (err) {
+      if (err instanceof ClockTransitionError) throw new BadRequestException(err.message);
+      throw err;
+    }
+
+    const updated = await this.prisma.match.update({
+      where: { id },
+      data: {
+        status: next.status,
+        periodStartedAt: next.periodStartedAt ? new Date(next.periodStartedAt) : null,
+        pausedElapsedMs: next.pausedElapsedMs,
+        currentPeriod: next.currentPeriod,
+      },
+    });
+    return toMatch(updated);
   }
 }

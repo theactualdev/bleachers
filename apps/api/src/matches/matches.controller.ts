@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import {
+  ClockActionSchema,
   CreateMatchSchema,
   UpdateMatchSchema,
+  type ClockActionRequest,
   type CreateMatchInput,
   type UpdateMatchInput,
 } from '@bleachers/types';
@@ -41,5 +43,14 @@ export class MatchesController {
     @Body(new ZodValidationPipe(UpdateMatchSchema)) body: UpdateMatchInput,
   ) {
     return this.matches.update(user.id, id, body);
+  }
+
+  @Post(':id/clock')
+  clock(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodValidationPipe(ClockActionSchema)) body: ClockActionRequest,
+  ) {
+    return this.matches.clock(user.id, id, body);
   }
 }

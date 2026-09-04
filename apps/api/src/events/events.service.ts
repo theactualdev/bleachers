@@ -5,7 +5,7 @@ import type {
   RecordEventInput,
   VoidEventInput,
 } from '@bleachers/types';
-import { getSportConfig, isEventTypeAllowed } from '@bleachers/sport-engine';
+import { canRecordInteractive, getSportConfig, isEventTypeAllowed } from '@bleachers/sport-engine';
 import type { Match, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MembershipService } from '../orgs/membership.service.js';
@@ -56,6 +56,11 @@ export class EventsService {
    */
   async record(userId: string, input: RecordEventInput) {
     const match = await this.getMatchOrThrow(input.matchId);
+    if (!canRecordInteractive(match.status)) {
+      throw new BadRequestException(
+        'Match is not in progress — events can only be recorded while it is live or paused',
+      );
+    }
 
     const existing = await this.prisma.event.findUnique({ where: { id: input.id } });
     if (existing) return { event: toEvent(existing), duplicate: true };
@@ -134,7 +139,12 @@ export class EventsService {
 
   /** Undo = void the most recent non-voided event of a match. Powers the scoring-screen Undo. */
   async undoLast(userId: string, matchId: string) {
-    await this.getMatchOrThrow(matchId);
+    const match = await this.getMatchOrThrow(matchId);
+    if (!canRecordInteractive(match.status)) {
+      throw new BadRequestException(
+        'Match is not in progress — undo is only available while it is live or paused',
+      );
+    }
     const last = await this.prisma.event.findFirst({
       where: { matchId, voided: false },
       orderBy: [{ recordedAt: 'desc' }],
