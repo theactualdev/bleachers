@@ -15,3 +15,12 @@ export {
   type ScoringButton,
 } from './engine/buttons.js';
 export { aggregatePlayerCareer, computeTeamStats, type TeamMatchResult } from './engine/career.js';
+export {
+  applyClockAction,
+  canRecordInteractive,
+  ClockTransitionError,
+  deriveElapsedMs,
+  type ClockActionInput,
+  type MatchClockState,
+  type MatchLifecycleStatus,
+} from './engine/clock.js';
