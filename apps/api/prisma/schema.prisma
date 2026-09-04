@@ -160,16 +160,24 @@ model Competition {
 }
 
 model Match {
-  id             String       @id @default(uuid()) @db.Uuid
-  sport          Sport
-  homeTeamId     String       @db.Uuid
-  homeTeam       Team         @relation("HomeTeam", fields: [homeTeamId], references: [id])
-  awayTeamId     String       @db.Uuid
-  awayTeam       Team         @relation("AwayTeam", fields: [awayTeamId], references: [id])
-  venue          String?
-  scheduledAt    DateTime
-  status         MatchStatus  @default(SCHEDULED)
-  statTier       StatTier     @default(BASIC)
+  id          String      @id @default(uuid()) @db.Uuid
+  sport       Sport
+  homeTeamId  String      @db.Uuid
+  homeTeam    Team        @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeamId  String      @db.Uuid
+  awayTeam    Team        @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  venue       String?
+  scheduledAt DateTime
+  status      MatchStatus @default(SCHEDULED)
+  statTier    StatTier    @default(BASIC)
+
+  // ── Derived-clock state (see @bleachers/sport-engine clock.ts) ───────────
+  // Wall-clock instant the clock last started running; null while stopped.
+  periodStartedAt DateTime?
+  // Milliseconds banked while the clock was stopped (pause, half-time, FT).
+  pausedElapsedMs Int       @default(0)
+  currentPeriod   Int       @default(1)
+
   competitionId  String?      @db.Uuid
   competition    Competition? @relation(fields: [competitionId], references: [id], onDelete: SetNull)
   createdById    String       @db.Uuid

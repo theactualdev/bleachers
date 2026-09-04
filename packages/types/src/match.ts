@@ -12,6 +12,11 @@ export const MatchSchema = z.object({
   scheduledAt: z.string().datetime({ offset: true }),
   status: MatchStatusSchema,
   statTier: StatTierSchema,
+  /** Clock: wall-clock start of the current running span, null while stopped. */
+  periodStartedAt: z.string().datetime({ offset: true }).nullable(),
+  /** Clock: milliseconds banked while stopped. Elapsed = banked + (now - periodStartedAt). */
+  pausedElapsedMs: z.number().int().min(0),
+  currentPeriod: z.number().int().min(1),
   /** Optional link to a competition — matches exist independently of competitions. */
   competitionId: IdSchema.nullable(),
   createdById: IdSchema,
@@ -74,3 +79,15 @@ export const UpdateMatchSchema = z.object({
   competitionId: IdSchema.nullable().optional(),
 });
 export type UpdateMatchInput = z.infer<typeof UpdateMatchSchema>;
+
+// ─── Lifecycle / clock transitions (POST /api/matches/:id/clock) ─────────────
+
+export const ClockActionSchema = z
+  .object({
+    action: z.enum(['KICKOFF', 'PAUSE', 'RESUME', 'END', 'ABANDON', 'SET_PERIOD']),
+    period: z.number().int().min(1).max(12).optional(),
+  })
+  .refine((a) => a.action !== 'SET_PERIOD' || a.period !== undefined, {
+    message: 'period is required for SET_PERIOD',
+  });
+export type ClockActionRequest = z.infer<typeof ClockActionSchema>;
