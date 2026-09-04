@@ -3,7 +3,7 @@
 import { use } from 'react';
 import Link from 'next/link';
 import { Download, Play, Share2 } from 'lucide-react';
-import { getEventType, getSportConfig } from '@bleachers/sport-engine';
+import { deriveElapsedMs, getEventType, getSportConfig } from '@bleachers/sport-engine';
 import type { TeamColors } from '@bleachers/types';
 import { AuthGate } from '@/components/auth-gate';
 import { PageHeader } from '@/components/page-header';
@@ -15,12 +15,18 @@ import { Skeleton } from '@/components/ui/misc';
 import { StatGrid } from '@/components/stat-grid';
 import { QueryErrorState } from '@/components/ui/query-error';
 import { API_URL } from '@/lib/api';
-import { formatMinute } from '@/lib/utils';
+import { isInPlay, useNow } from '@/lib/use-now';
+import { formatClock, formatMinute } from '@/lib/utils';
 
 function MatchDetail({ id }: { id: string }) {
-  const { data: match, isLoading, isError, error, refetch } = useMatch(id);
-  const { data: stats } = useMatchStats(id);
+  // The match row is cheap, so poll it unconditionally here — that is how a
+  // viewer sitting on this page sees a kickoff or a full time land. Stats are
+  // heavier, so they only poll while the match is actually in play.
+  const { data: match, isLoading, isError, error, refetch } = useMatch(id, { refetchMs: 10_000 });
+  const inPlay = isInPlay(match?.status ?? '');
+  const { data: stats } = useMatchStats(id, { refetchMs: inPlay ? 10_000 : undefined });
   const { data: players } = usePlayers();
+  const now = useNow(match?.status === 'LIVE');
 
   if (isError && !match) {
     return (
@@ -70,13 +76,28 @@ function MatchDetail({ id }: { id: string }) {
           homeColors={homeColors}
           awayColors={awayColors}
           score={stats?.score ?? [0, 0]}
-          clockLabel={match.status}
+          clockLabel={
+            match.status === 'COMPLETED'
+              ? 'FT'
+              : match.status === 'ABANDONED'
+                ? 'Abandoned'
+                : match.status === 'SCHEDULED'
+                  ? new Date(match.scheduledAt).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  : formatClock(deriveElapsedMs(match, now))
+          }
           periodLabel={config.name}
           live={match.status === 'LIVE'}
+          homeHref={`/teams/${match.homeTeamId}`}
+          awayHref={`/teams/${match.awayTeamId}`}
         />
 
         <div className="flex gap-2">
-          {(match.status === 'LIVE' || match.status === 'SCHEDULED') && (
+          {(match.status === 'LIVE' ||
+            match.status === 'PAUSED' ||
+            match.status === 'SCHEDULED') && (
             <Link href={`/matches/${id}/live`} className="flex-1">
               <Button className="w-full">
                 <Play className="h-4 w-4" /> Score live
@@ -112,7 +133,11 @@ function MatchDetail({ id }: { id: string }) {
                     <span className="font-medium">
                       {getEventType(config, t.type)?.label ?? t.label}
                     </span>
-                    {t.playerId && <span className="text-ink-3">· {nameOf(t.playerId)}</span>}
+                    {t.playerId && (
+                      <Link href={`/players/${t.playerId}`} className="text-ink-3 hover:text-ink-1">
+                        · {nameOf(t.playerId)}
+                      </Link>
+                    )}
                     {t.isScoring && (
                       <span className="font-display tabnums text-ink-1 ml-auto text-base">
                         {t.scoreAfter[0]}–{t.scoreAfter[1]}
@@ -133,7 +158,9 @@ function MatchDetail({ id }: { id: string }) {
                 {stats.players.map((p) => (
                   <div key={p.playerId}>
                     <p className="text-ink-1 mb-2 text-sm font-semibold">
-                      {nameOf(p.playerId)}{' '}
+                      <Link href={`/players/${p.playerId}`} className="hover:underline">
+                        {nameOf(p.playerId)}
+                      </Link>{' '}
                       <span className="text-ink-3 text-xs font-normal">
                         {p.side === 'HOME' ? match.homeTeam.name : match.awayTeam.name}
                       </span>

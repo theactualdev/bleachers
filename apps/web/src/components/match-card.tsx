@@ -15,7 +15,12 @@ type MatchWithTeams = Match & { homeTeam: Team; awayTeam: Team };
  * these — the Apple-Sports "team-tinted glass" moment.
  */
 export function MatchCard({ match }: { match: MatchWithTeams }) {
-  const { data: stats } = useMatchStats(match.id);
+  // The dashboard's own `useMatches` poll refreshes the match rows but not the
+  // scores, and the app disables `refetchOnWindowFocus` — so a live card has to
+  // poll its own stats or its score would sit frozen until a manual reload.
+  const { data: stats } = useMatchStats(match.id, {
+    refetchMs: match.status === 'LIVE' ? 15_000 : undefined,
+  });
   const score = stats?.score ?? [0, 0];
   const live = match.status === 'LIVE';
   const decided = match.status === 'COMPLETED';

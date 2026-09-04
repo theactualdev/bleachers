@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { UserPlus } from 'lucide-react';
 import { AuthGate } from '@/components/auth-gate';
 import { PageHeader } from '@/components/page-header';
@@ -168,22 +169,26 @@ function TeamProfile({ id }: { id: string }) {
         ) : roster && roster.length === 0 ? (
           <EmptyState title="Empty roster" hint="Add players above to build this team." />
         ) : (
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2.5">
+            {/* flex + gap for the same reason as the teams and players lists:
+                `space-y` sets margin-top, which has no effect on the inline
+                <a> that Link renders. */}
             {sortedRoster.map((r) => {
               const pending = r.id.startsWith('optimistic-');
               return (
-                <Card
-                  key={r.id}
-                  className={`flex items-center gap-3 p-3 transition-opacity ${pending ? 'opacity-60' : ''}`}
-                >
-                  <Avatar src={r.player.photo} name={r.player.name} size="sm" />
-                  <span className="text-ink-1 font-semibold">{r.player.name}</span>
-                  {r.jerseyNumber && (
-                    <span className="text-ink-3 ml-auto text-sm font-semibold">
-                      #{r.jerseyNumber}
-                    </span>
-                  )}
-                </Card>
+                <Link key={r.id} href={`/players/${r.playerId}`}>
+                  <Card
+                    className={`flex items-center gap-3 p-3 transition-opacity ${pending ? 'opacity-60' : ''}`}
+                  >
+                    <Avatar src={r.player.photo} name={r.player.name} size="sm" />
+                    <span className="text-ink-1 font-semibold">{r.player.name}</span>
+                    {r.jerseyNumber && (
+                      <span className="text-ink-3 ml-auto text-sm font-semibold">
+                        #{r.jerseyNumber}
+                      </span>
+                    )}
+                  </Card>
+                </Link>
               );
             })}
           </div>

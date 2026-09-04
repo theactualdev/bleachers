@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import type { TeamColors } from '@bleachers/types';
 import { Avatar } from '@/components/ui/avatar';
@@ -16,6 +17,8 @@ export function Scoreboard({
   clockLabel,
   periodLabel,
   live = true,
+  homeHref,
+  awayHref,
 }: {
   homeName: string;
   awayName: string;
@@ -27,6 +30,9 @@ export function Scoreboard({
   clockLabel: string;
   periodLabel: string;
   live?: boolean;
+  /** When set, the team name+mark become navigation. Unset (live screen) = plain text. */
+  homeHref?: string;
+  awayHref?: string;
 }) {
   const homeColor = homeColors.primary;
   const awayColor = awayColors.primary;
@@ -48,7 +54,13 @@ export function Scoreboard({
           </span>
         </div>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-          <TeamBlock name={homeName} logo={homeLogo} colors={homeColors} align="left" />
+          <TeamBlock
+            name={homeName}
+            logo={homeLogo}
+            colors={homeColors}
+            align="left"
+            href={homeHref}
+          />
           <div className="font-display tabnums text-ink-1 text-score flex items-center gap-2.5 leading-none">
             <motion.span key={score[0]} initial={{ scale: 1.3 }} animate={{ scale: 1 }}>
               {score[0]}
@@ -58,7 +70,13 @@ export function Scoreboard({
               {score[1]}
             </motion.span>
           </div>
-          <TeamBlock name={awayName} logo={awayLogo} colors={awayColors} align="right" />
+          <TeamBlock
+            name={awayName}
+            logo={awayLogo}
+            colors={awayColors}
+            align="right"
+            href={awayHref}
+          />
         </div>
       </div>
     </div>
@@ -70,13 +88,15 @@ function TeamBlock({
   logo,
   colors,
   align,
+  href,
 }: {
   name: string;
   logo?: string | null;
   colors: TeamColors;
   align: 'left' | 'right';
+  href?: string;
 }) {
-  return (
+  const block = (
     <div className={`flex items-center gap-2.5 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
       <Avatar src={logo} name={name} color={colors} size="sm" shape="square" />
       <span
@@ -85,5 +105,13 @@ function TeamBlock({
         {name}
       </span>
     </div>
+  );
+  // The link is transparent chrome: identical markup and classes, just tappable.
+  return href ? (
+    <Link href={href} className="min-w-0">
+      {block}
+    </Link>
+  ) : (
+    block
   );
 }
