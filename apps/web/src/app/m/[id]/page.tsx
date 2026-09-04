@@ -68,7 +68,18 @@ export default function PublicMatchPage({ params }: { params: Promise<{ id: stri
       return res.json();
     },
     // The whole point of this page: a shared link that moves on its own.
-    refetchInterval: (q) => (q.state.data && isInPlay(q.state.data.match.status) ? 10_000 : false),
+    //
+    // Gated on "not finished", NOT on isInPlay: a viewer who opens the link
+    // before kickoff is the common case, and an in-play-only gate could never
+    // turn itself back on to reveal it — React Query tears the interval down
+    // the moment the predicate goes false and only re-evaluates on a query
+    // update. COMPLETED and ABANDONED are terminal in the clock engine, so
+    // stopping there is safe and keeps finished matches from polling forever.
+    refetchInterval: (q) => {
+      const status = q.state.data?.match.status;
+      if (!status) return 10_000;
+      return status === 'COMPLETED' || status === 'ABANDONED' ? false : 10_000;
+    },
   });
   const now = useNow(data?.match.status === 'LIVE');
 
