@@ -107,6 +107,14 @@ test('fresh user completes the create-match wizard end to end', async ({ page })
   // panel header), so scope to "present at least once" rather than a single unique match.
   await expect(page.getByText('E2E Home FC').first()).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('E2E Away FC').first()).toBeVisible();
+
+  // Full time is a two-tap confirm, then lands on the match detail page.
+  await page.getByRole('button', { name: 'Full time' }).click();
+  await page.getByRole('button', { name: 'Confirm FT' }).click();
+  await page.waitForURL(/\/matches\/[^/]+$/, { timeout: 30_000 });
+  // The detail scoreboard prints the period and the clock in one label ("Football · FT"), so
+  // there is no element whose text is exactly "FT" — anchor on the clock half of that label.
+  await expect(page.getByText(/·\s*FT$/)).toBeVisible({ timeout: 15_000 });
 });
 
 test('a failed teams fetch shows a retry state, not the registration form', async ({ page }) => {
