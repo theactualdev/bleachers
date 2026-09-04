@@ -233,15 +233,19 @@ export const useMatches = () => {
     queryKey: ['matches', orgId],
     queryFn: () => apiGet<MatchWithTeams[]>('/api/matches'),
     enabled: !!orgId,
+    // Live-by-default for viewers: while any match is live, keep the list fresh.
+    refetchInterval: (query) =>
+      query.state.data?.some((m) => m.status === 'LIVE') ? 15_000 : false,
   });
 };
 
-export const useMatch = (id: string) => {
+export const useMatch = (id: string, opts?: { refetchMs?: number }) => {
   const orgId = useActiveOrgId();
   return useQuery({
     queryKey: ['match', orgId, id],
     queryFn: () => apiGet<MatchDetail>(`/api/matches/${id}`),
     enabled: !!id && !!orgId,
+    refetchInterval: opts?.refetchMs ?? false,
   });
 };
 
@@ -281,12 +285,13 @@ export const useSportConfig = (sport: string) =>
   });
 
 // ── Stats & events ───────────────────────────────────────────────────────────
-export const useMatchStats = (id: string) => {
+export const useMatchStats = (id: string, opts?: { refetchMs?: number }) => {
   const orgId = useActiveOrgId();
   return useQuery({
     queryKey: ['match-stats', orgId, id],
     queryFn: () => apiGet<MatchStats>(`/api/matches/${id}/stats`),
     enabled: !!id && !!orgId,
+    refetchInterval: opts?.refetchMs ?? false,
   });
 };
 
