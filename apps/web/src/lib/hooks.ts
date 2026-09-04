@@ -233,9 +233,15 @@ export const useMatches = () => {
     queryKey: ['matches', orgId],
     queryFn: () => apiGet<MatchWithTeams[]>('/api/matches'),
     enabled: !!orgId,
-    // Live-by-default for viewers: while any match is live, keep the list fresh.
-    refetchInterval: (query) =>
-      query.state.data?.some((m) => m.status === 'LIVE') ? 15_000 : false,
+    // Live-by-default for viewers: poll unconditionally so a viewer sitting on the
+    // dashboard sees a match go live without touching anything. Deliberately NOT
+    // gated on the cached data containing a LIVE match — that gate can never turn
+    // itself back on: React Query tears the interval down the moment the predicate
+    // returns false and only re-evaluates it on a query update, and the app disables
+    // `refetchOnWindowFocus`, so nothing would ever refetch to reveal the kickoff (or
+    // a resume after half time). React Query already skips the fetch while the tab is
+    // unfocused, so an idle viewer costs nothing.
+    refetchInterval: 15_000,
   });
 };
 

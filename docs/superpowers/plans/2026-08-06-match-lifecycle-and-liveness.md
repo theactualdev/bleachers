@@ -753,7 +753,7 @@ post-match corrections and late syncs are legitimate."
   - `isInPlay(status: string): boolean` — LIVE or PAUSED
   - `useMatchClock(id: string)` — mutation; `mutate({ action, period? })`; invalidates `['match', orgId, id]`, `['matches', orgId]`, `['match-stats', orgId, id]` — **already implemented** (landed with the Task 3 review fix, which needed a kickoff action once the tap grid became status-gated); verify it matches this shape rather than re-adding it
   - `useMatch(id, opts?: { refetchMs?: number })`, `useMatchStats(id, opts?: { refetchMs?: number })` — polling opt-in
-  - `useMatches()` — self-polling every 15 s whenever its own data contains a LIVE match
+  - `useMatches()` — self-polling every 15 s, unconditionally (see the note in Step 3 for why it must not be gated on the cached data)
 
 - [ ] **Step 1: Write the failing test for the pure piece**
 
@@ -823,9 +823,15 @@ export const useMatches = () => {
     queryKey: ['matches', orgId],
     queryFn: () => apiGet<MatchWithTeams[]>('/api/matches'),
     enabled: !!orgId,
-    // Live-by-default for viewers: while any match is live, keep the list fresh.
-    refetchInterval: (query) =>
-      query.state.data?.some((m) => m.status === 'LIVE') ? 15_000 : false,
+    // Live-by-default for viewers: poll unconditionally so a viewer sitting on the
+    // dashboard sees a match go live without touching anything. Deliberately NOT
+    // gated on the cached data containing a LIVE match — that gate can never turn
+    // itself back on: React Query tears the interval down the moment the predicate
+    // returns false and only re-evaluates it on a query update, and the app disables
+    // `refetchOnWindowFocus`, so nothing would ever refetch to reveal the kickoff (or
+    // a resume after half time). React Query already skips the fetch while the tab is
+    // unfocused, so an idle viewer costs nothing.
+    refetchInterval: 15_000,
   });
 };
 ```
@@ -891,8 +897,9 @@ git add apps/web/src/lib/use-now.ts apps/web/src/lib/use-now.test.ts apps/web/sr
 git commit -m "feat(web): clock mutation, ticking-now hook, opt-in polling
 
 useMatchClock posts lifecycle transitions; useNow re-derives display time
-each second from server timestamps; useMatches polls itself while any
-match is live, and useMatch/useMatchStats accept a refetch interval."
+each second from server timestamps; useMatches polls itself every 15s so
+kickoffs surface unprompted, and useMatch/useMatchStats accept a refetch
+interval."
 ```
 
 ---
