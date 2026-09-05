@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/misc';
 import { StatGrid } from '@/components/stat-grid';
+import { PeriodScores, StatComparison } from '@/components/stat-comparison';
 import { QueryErrorState } from '@/components/ui/query-error';
 import { API_URL } from '@/lib/api';
 import { isInPlay, useNow } from '@/lib/use-now';
@@ -94,6 +95,10 @@ function MatchDetail({ id }: { id: string }) {
           awayHref={`/teams/${match.awayTeamId}`}
         />
 
+        {stats && stats.scoreByPeriod.length > 1 && (
+          <PeriodScores scores={stats.scoreByPeriod} periodLabel={config.periods.periodLabel} />
+        )}
+
         <div className="flex gap-2">
           {(match.status === 'LIVE' ||
             match.status === 'PAUSED' ||
@@ -169,6 +174,20 @@ function MatchDetail({ id }: { id: string }) {
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {stats && (
+          <Card>
+            <CardContent className="pt-5">
+              <h2 className="text-eyebrow text-ink-3 mb-4">Match stats</h2>
+              <StatComparison
+                home={stats.teamStats.HOME}
+                away={stats.teamStats.AWAY}
+                homeColor={homeColor}
+                awayColor={awayColor}
+              />
             </CardContent>
           </Card>
         )}
