@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { deriveElapsedMs, getEventType, getSportConfig } from '@bleachers/sport-engine';
 import type { MatchStats, Sport } from '@bleachers/types';
 
+import { PeriodScores, StatComparison } from '@/components/stat-comparison';
 import { API_URL } from '@/lib/api-url';
 import { isInPlay, useNow } from '@/lib/use-now';
 import { formatClock } from '@/lib/utils';
@@ -31,6 +32,13 @@ interface PublicMatch {
   homeTeam: PublicTeam;
   awayTeam: PublicTeam;
   playerNames: Record<string, string>;
+  lineups: {
+    id: string;
+    side: 'HOME' | 'AWAY';
+    playerId: string;
+    isStarter: boolean;
+    jerseyNumberOverride: string | null;
+  }[];
   stats: MatchStats;
 }
 
@@ -139,6 +147,12 @@ export default function PublicMatchPage({ params }: { params: Promise<{ id: stri
         )}
       </div>
 
+      {stats.scoreByPeriod.length > 1 && (
+        <div className="mt-3">
+          <PeriodScores scores={stats.scoreByPeriod} periodLabel={config.periods.periodLabel} />
+        </div>
+      )}
+
       {stats.timeline.length > 0 && (
         <section className="glass rim mt-4 rounded-xl p-5">
           <h2 className="text-eyebrow text-ink-3 mb-3">Timeline</h2>
@@ -169,6 +183,47 @@ export default function PublicMatchPage({ params }: { params: Promise<{ id: stri
           </div>
         </section>
       )}
+
+      {data.lineups.length > 0 && (
+        <section className="glass rim mt-4 rounded-xl p-5">
+          <h2 className="text-eyebrow text-ink-3 mb-3">Lineups</h2>
+          <div className="grid grid-cols-2 gap-4">
+            {(['HOME', 'AWAY'] as const).map((side) => (
+              <div key={side} className="min-w-0">
+                <p className="text-ink-1 mb-2 truncate text-sm font-semibold">
+                  {side === 'HOME' ? homeTeam.name : awayTeam.name}
+                </p>
+                <ul className="space-y-1.5">
+                  {data.lineups
+                    .filter((l) => l.side === side)
+                    .sort((a, b) => Number(b.isStarter) - Number(a.isStarter))
+                    .map((l) => (
+                      <li
+                        key={l.id}
+                        className={`flex items-baseline gap-2 text-sm ${l.isStarter ? 'text-ink-2' : 'text-ink-3'}`}
+                      >
+                        <span className="tabnums text-ink-3 w-6 shrink-0 text-xs">
+                          {l.jerseyNumberOverride ?? ''}
+                        </span>
+                        <span className="truncate">{playerNames[l.playerId] ?? 'Player'}</span>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="glass rim mt-4 rounded-xl p-5">
+        <h2 className="text-eyebrow text-ink-3 mb-3">Match stats</h2>
+        <StatComparison
+          home={stats.teamStats.HOME}
+          away={stats.teamStats.AWAY}
+          homeColor={homeTeam.colors.primary}
+          awayColor={awayTeam.colors.primary}
+        />
+      </section>
 
       <div className="text-ink-2 mt-5 flex items-center justify-center gap-4 text-sm">
         <a

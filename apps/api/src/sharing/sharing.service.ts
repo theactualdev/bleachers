@@ -52,6 +52,15 @@ export class SharingService {
         logo: match.awayTeam.logo,
       },
       playerNames,
+      // Already loaded for playerNames above; returning the rows lets the public
+      // page render team sheets without a second request.
+      lineups: match.lineups.map((l) => ({
+        id: l.id,
+        side: l.side,
+        playerId: l.playerId,
+        isStarter: l.isStarter,
+        jerseyNumberOverride: l.jerseyNumberOverride,
+      })),
       stats,
     };
   }
