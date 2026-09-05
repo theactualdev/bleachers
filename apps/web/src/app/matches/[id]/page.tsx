@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/misc';
 import { StatGrid } from '@/components/stat-grid';
+import { Lineups } from '@/components/lineups';
 import { PeriodScores, StatComparison } from '@/components/stat-comparison';
 import { QueryErrorState } from '@/components/ui/query-error';
 import { API_URL } from '@/lib/api';
@@ -120,6 +121,20 @@ function MatchDetail({ id }: { id: string }) {
             </Button>
           </a>
         </div>
+
+        {match.lineups.length > 0 && (
+          <Card>
+            <CardContent className="pt-5">
+              <h2 className="text-eyebrow text-ink-3 mb-4">Lineups</h2>
+              <Lineups
+                lineups={match.lineups}
+                homeName={match.homeTeam.name}
+                awayName={match.awayTeam.name}
+                nameOf={(pid) => nameOf(pid)}
+              />
+            </CardContent>
+          </Card>
+        )}
 
         {stats && stats.timeline.length > 0 && (
           <Card>
