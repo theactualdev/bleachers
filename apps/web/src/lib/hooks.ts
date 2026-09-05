@@ -245,6 +245,16 @@ export const useMatches = () => {
   });
 };
 
+/** Matches involving one team, for the club page. Same org scope as useMatches. */
+export const useTeamMatches = (teamId: string) => {
+  const orgId = useActiveOrgId();
+  return useQuery({
+    queryKey: ['matches', orgId, 'team', teamId],
+    queryFn: () => apiGet<MatchWithTeams[]>(`/api/matches?teamId=${teamId}`),
+    enabled: !!teamId && !!orgId,
+  });
+};
+
 export const useMatch = (id: string, opts?: { refetchMs?: number }) => {
   const orgId = useActiveOrgId();
   return useQuery({

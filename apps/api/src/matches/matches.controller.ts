@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import {
   ClockActionSchema,
   CreateMatchSchema,
@@ -18,8 +18,12 @@ export class MatchesController {
   constructor(private readonly matches: MatchesService) {}
 
   @Get()
-  list(@CurrentUser() user: AuthUser, @CurrentOrgId() orgId: string) {
-    return this.matches.list(user.id, orgId);
+  list(
+    @CurrentUser() user: AuthUser,
+    @CurrentOrgId() orgId: string,
+    @Query('teamId', new ParseUUIDPipe({ optional: true })) teamId?: string,
+  ) {
+    return this.matches.list(user.id, orgId, teamId);
   }
 
   @Get(':id')

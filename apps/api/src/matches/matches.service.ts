@@ -27,10 +27,13 @@ export class MatchesService {
     return match.organizationId;
   }
 
-  async list(userId: string, orgId: string) {
+  async list(userId: string, orgId: string, teamId?: string) {
     await this.members.assertMember(userId, orgId, 'VIEWER');
     const matches = await this.prisma.match.findMany({
-      where: { organizationId: orgId },
+      where: {
+        organizationId: orgId,
+        ...(teamId ? { OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }] } : {}),
+      },
       orderBy: { scheduledAt: 'desc' },
       include: { homeTeam: true, awayTeam: true },
     });
