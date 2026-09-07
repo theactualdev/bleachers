@@ -22,8 +22,9 @@ export class MatchesController {
     @CurrentUser() user: AuthUser,
     @CurrentOrgId() orgId: string,
     @Query('teamId', new ParseUUIDPipe({ optional: true })) teamId?: string,
+    @Query('competitionId', new ParseUUIDPipe({ optional: true })) competitionId?: string,
   ) {
-    return this.matches.list(user.id, orgId, teamId);
+    return this.matches.list(user.id, orgId, teamId, competitionId);
   }
 
   @Get(':id')

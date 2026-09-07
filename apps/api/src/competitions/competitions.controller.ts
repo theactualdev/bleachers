@@ -20,6 +20,18 @@ export class CompetitionsController {
     return this.competitions.list(user.id, orgId);
   }
 
+  // Declared before `@Get(':id')`: Nest matches routes in declaration order, so
+  // a bare `:id` handler above these would swallow both aggregate paths.
+  @Get(':id/standings')
+  standings(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.competitions.standings(user.id, id);
+  }
+
+  @Get(':id/top-scorers')
+  topScorers(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.competitions.topScorers(user.id, id);
+  }
+
   @Get(':id')
   get(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.competitions.get(user.id, id);

@@ -1,8 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { CreateCompetitionInput, UpdateCompetitionInput } from '@bleachers/types';
+import type {
+  CreateCompetitionInput,
+  StandingsEntry,
+  TopScorer,
+  UpdateCompetitionInput,
+} from '@bleachers/types';
+import { computeStandings, getSportConfig, reduceMatch } from '@bleachers/sport-engine';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MembershipService } from '../orgs/membership.service.js';
-import { toCompetition } from '../common/serialize.js';
+import { toCompetition, toEvent } from '../common/serialize.js';
 
 @Injectable()
 export class CompetitionsService {
@@ -61,5 +67,80 @@ export class CompetitionsService {
       },
     });
     return toCompetition(c);
+  }
+
+  /**
+   * League table, derived from this competition's COMPLETED matches only.
+   * An in-progress match has no result to contribute.
+   */
+  async standings(userId: string, id: string): Promise<StandingsEntry[]> {
+    await this.members.assertMember(userId, await this.orgOf(id), 'VIEWER');
+
+    const matches = await this.prisma.match.findMany({
+      where: { competitionId: id, status: 'COMPLETED' },
+      include: {
+        homeTeam: { select: { id: true, name: true } },
+        awayTeam: { select: { id: true, name: true } },
+        events: { where: { voided: false } },
+      },
+    });
+
+    const names = new Map<string, string>();
+    const results = matches.map((m) => {
+      const config = getSportConfig(m.sport);
+      const stats = reduceMatch(config, m.id, m.events.map(toEvent), m.statTier);
+      names.set(m.homeTeam.id, m.homeTeam.name);
+      names.set(m.awayTeam.id, m.awayTeam.name);
+      return {
+        homeTeamId: m.homeTeamId,
+        awayTeamId: m.awayTeamId,
+        homeGoals: stats.score[0],
+        awayGoals: stats.score[1],
+      };
+    });
+
+    return computeStandings(results).map((row) => ({
+      ...row,
+      teamName: names.get(row.teamId) ?? 'Team',
+    }));
+  }
+
+  /**
+   * Scorers across the competition. Scoring events are whatever the sport config
+   * marks as scoring — the same judgement the timeline uses — so this stays
+   * correct for sports where a score is not one goal.
+   */
+  async topScorers(userId: string, id: string): Promise<TopScorer[]> {
+    await this.members.assertMember(userId, await this.orgOf(id), 'VIEWER');
+
+    const matches = await this.prisma.match.findMany({
+      where: { competitionId: id, status: 'COMPLETED' },
+      include: { events: { where: { voided: false } } },
+    });
+
+    const goals = new Map<string, number>();
+    for (const m of matches) {
+      const config = getSportConfig(m.sport);
+      const stats = reduceMatch(config, m.id, m.events.map(toEvent), m.statTier);
+      for (const entry of stats.timeline) {
+        if (!entry.isScoring || !entry.playerId) continue;
+        goals.set(entry.playerId, (goals.get(entry.playerId) ?? 0) + 1);
+      }
+    }
+    if (goals.size === 0) return [];
+
+    const players = await this.prisma.player.findMany({
+      where: { id: { in: [...goals.keys()] } },
+      select: { id: true, name: true },
+    });
+    const names = new Map(players.map((p) => [p.id, p.name]));
+
+    return [...goals.entries()]
+      .map(([playerId, count]) => ({
+        playerId,
+        playerName: names.get(playerId) ?? 'Player',
+        goals: count,
+      }))
+      .sort((a, b) => b.goals - a.goals || a.playerName.localeCompare(b.playerName));
   }
 }
