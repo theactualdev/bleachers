@@ -3,6 +3,8 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   ClockActionRequest,
+  Competition,
+  CreateCompetitionInput,
   CreateMatchInput,
   CreateTeamPlayerInput,
   Match,
@@ -15,8 +17,10 @@ import type {
   PlayerMatchLogEntry,
   RegisterTeamInput,
   RosterEntryWithPlayer,
+  StandingsEntry,
   Team,
   TeamStats,
+  TopScorer,
 } from '@bleachers/types';
 import type { SportConfig } from '@bleachers/sport-engine';
 import { apiGet, apiPost, API_URL, ApiError } from './api';
@@ -341,3 +345,60 @@ export const useMatchEvents = (id: string) => {
     enabled: !!id && !!orgId,
   });
 };
+
+// ── Competitions ─────────────────────────────────────────────────────────────
+export const useCompetitions = () => {
+  const orgId = useActiveOrgId();
+  return useQuery({
+    queryKey: ['competitions', orgId],
+    queryFn: () => apiGet<Competition[]>('/api/competitions'),
+    enabled: !!orgId,
+  });
+};
+
+export const useCompetition = (id: string) => {
+  const orgId = useActiveOrgId();
+  return useQuery({
+    queryKey: ['competition', orgId, id],
+    queryFn: () => apiGet<Competition>(`/api/competitions/${id}`),
+    enabled: !!id && !!orgId,
+  });
+};
+
+/** The league table, recomputed server-side from COMPLETED matches. */
+export const useStandings = (id: string) => {
+  const orgId = useActiveOrgId();
+  return useQuery({
+    queryKey: ['standings', orgId, id],
+    queryFn: () => apiGet<StandingsEntry[]>(`/api/competitions/${id}/standings`),
+    enabled: !!id && !!orgId,
+  });
+};
+
+export const useTopScorers = (id: string) => {
+  const orgId = useActiveOrgId();
+  return useQuery({
+    queryKey: ['top-scorers', orgId, id],
+    queryFn: () => apiGet<TopScorer[]>(`/api/competitions/${id}/top-scorers`),
+    enabled: !!id && !!orgId,
+  });
+};
+
+/** Matches belonging to one competition — fixtures and results for its page. */
+export const useCompetitionMatches = (id: string) => {
+  const orgId = useActiveOrgId();
+  return useQuery({
+    queryKey: ['matches', orgId, 'competition', id],
+    queryFn: () => apiGet<MatchWithTeams[]>(`/api/matches?competitionId=${id}`),
+    enabled: !!id && !!orgId,
+  });
+};
+
+export function useCreateCompetition() {
+  const qc = useQueryClient();
+  const orgId = useActiveOrgId();
+  return useMutation({
+    mutationFn: (input: CreateCompetitionInput) => apiPost<Competition>('/api/competitions', input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['competitions', orgId] }),
+  });
+}
