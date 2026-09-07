@@ -5,6 +5,7 @@
     "dockerfilePath": "apps/api/Dockerfile"
   },
   "deploy": {
+    "sleepApplication": true,
     "preDeployCommand": "./node_modules/.bin/prisma migrate deploy",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 120,
