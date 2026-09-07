@@ -2,17 +2,19 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Plus } from 'lucide-react';
+import { Plus, Trophy } from 'lucide-react';
 import { AuthGate } from '@/components/auth-gate';
 import { PageHeader } from '@/components/page-header';
 import { MatchCard } from '@/components/match-card';
-import { useMatches } from '@/lib/hooks';
+import { useCompetitions, useMatches } from '@/lib/hooks';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { EmptyState, Skeleton } from '@/components/ui/misc';
 import { QueryErrorState } from '@/components/ui/query-error';
 
 function Dashboard() {
   const { data: matches, isLoading, isError, error, refetch } = useMatches();
+  const { data: competitions } = useCompetitions();
   const live = matches?.filter((m) => m.status === 'LIVE') ?? [];
   const rest = matches?.filter((m) => m.status !== 'LIVE') ?? [];
 
@@ -71,6 +73,30 @@ function Dashboard() {
                     <MatchCard match={m} />
                   </StaggerItem>
                 ))}
+              </Section>
+            )}
+            {/*
+              The entry point to competitions. Deliberately here rather than a
+              fifth bottom-nav item: at 375px that cell is ~63px and the label
+              does not fit, and nav labels have no truncation — it would wrap,
+              stretch the items-stretch row and break the active-pill animation.
+            */}
+            {competitions && competitions.length > 0 && (
+              <Section eyebrow="Competitions" count={competitions.length}>
+                {competitions.slice(0, 3).map((c) => (
+                  <Link key={c.id} href={`/competitions/${c.id}`}>
+                    <Card className="flex items-center gap-3 p-3">
+                      <Trophy className="text-brand h-4 w-4 shrink-0" />
+                      <span className="text-ink-1 truncate font-semibold">{c.name}</span>
+                    </Card>
+                  </Link>
+                ))}
+                <Link
+                  href="/competitions"
+                  className="text-brand block px-1 text-sm font-medium hover:underline"
+                >
+                  All competitions
+                </Link>
               </Section>
             )}
           </>

@@ -7,7 +7,7 @@ import { deriveElapsedMs, getEventType, getSportConfig } from '@bleachers/sport-
 import type { TeamColors } from '@bleachers/types';
 import { AuthGate } from '@/components/auth-gate';
 import { PageHeader } from '@/components/page-header';
-import { useMatch, useMatchStats, usePlayers } from '@/lib/hooks';
+import { useCompetition, useMatch, useMatchStats, usePlayers } from '@/lib/hooks';
 import { Scoreboard } from '@/components/scoring/scoreboard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -28,6 +28,8 @@ function MatchDetail({ id }: { id: string }) {
   const inPlay = isInPlay(match?.status ?? '');
   const { data: stats } = useMatchStats(id, { refetchMs: inPlay ? 10_000 : undefined });
   const { data: players } = usePlayers();
+  // The hook is enabled-guarded on a falsy id, so an unlinked match makes no request.
+  const { data: competition } = useCompetition(match?.competitionId ?? '');
   const now = useNow(match?.status === 'LIVE');
 
   if (isError && !match) {
@@ -69,6 +71,16 @@ function MatchDetail({ id }: { id: string }) {
   return (
     <>
       <PageHeader title="Match" eyebrow={config.name} />
+      {competition && (
+        <div className="px-4 pt-2">
+          <Link
+            href={`/competitions/${competition.id}`}
+            className="text-brand text-sm font-medium hover:underline"
+          >
+            {competition.name}
+          </Link>
+        </div>
+      )}
       <div className="space-y-4 px-4 py-2">
         <Scoreboard
           homeName={match.homeTeam.name}
