@@ -4,6 +4,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { PlayersModule } from './players/players.module.js';
 import { TeamsModule } from './teams/teams.module.js';
 import { MatchesModule } from './matches/matches.module.js';
+import { CompetitionsModule } from './competitions/competitions.module.js';
 import { EventsModule } from './events/events.module.js';
 import { StatisticsModule } from './statistics/statistics.module.js';
 import { SharingModule } from './sharing/sharing.module.js';
@@ -22,6 +23,7 @@ import { HealthController } from './health.controller.js';
     PlayersModule,
     TeamsModule,
     MatchesModule,
+    CompetitionsModule,
     EventsModule,
     StatisticsModule,
     SharingModule,

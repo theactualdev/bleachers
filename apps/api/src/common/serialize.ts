@@ -1,4 +1,5 @@
 import type {
+  Competition as PrismaCompetition,
   Event as PrismaEvent,
   Match as PrismaMatch,
   MatchLineup as PrismaLineup,
@@ -7,6 +8,7 @@ import type {
   Team as PrismaTeam,
 } from '@prisma/client';
 import type {
+  Competition,
   Match,
   MatchEvent,
   MatchLineup,
@@ -71,6 +73,18 @@ export function toMatch(m: PrismaMatch): Match {
     createdById: m.createdById,
     createdAt: iso(m.createdAt),
     updatedAt: iso(m.updatedAt),
+  };
+}
+
+export function toCompetition(c: PrismaCompetition): Competition {
+  return {
+    id: c.id,
+    name: c.name,
+    sport: c.sport,
+    format: c.format,
+    createdById: c.createdById,
+    createdAt: iso(c.createdAt),
+    updatedAt: iso(c.updatedAt),
   };
 }
 
