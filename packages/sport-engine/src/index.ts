@@ -24,3 +24,8 @@ export {
   type MatchClockState,
   type MatchLifecycleStatus,
 } from './engine/clock.js';
+export {
+  computeStandings,
+  type StandingsMatchResult,
+  type StandingsRow,
+} from './engine/standings.js';
