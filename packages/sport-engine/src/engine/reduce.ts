@@ -106,8 +106,9 @@ export function reduceMatch(
     }
 
     let isScoring = false;
+    let scoringSide: MatchSide | null = null;
     if (def?.score) {
-      const scoringSide = def.score.side === 'SAME' ? ev.side : OTHER[ev.side];
+      scoringSide = def.score.side === 'SAME' ? ev.side : OTHER[ev.side];
       score[scoreIndex(scoringSide)] += def.score.points;
       while (scoreByPeriod.length < ev.period) scoreByPeriod.push([0, 0]);
       scoreByPeriod[ev.period - 1]![scoreIndex(scoringSide)] += def.score.points;
@@ -126,6 +127,7 @@ export function reduceMatch(
       clockMs: ev.clockMs,
       scoreAfter: [score[0], score[1]],
       isScoring,
+      scoringSide,
     });
   }
 

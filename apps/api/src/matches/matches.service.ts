@@ -27,6 +27,22 @@ export class MatchesService {
     return match.organizationId;
   }
 
+  /**
+   * A match may only be filed under a competition in its own org. Nothing in the schema
+   * enforces this — `competitionId` is a bare nullable FK — so without this check one org
+   * could push fixtures into another org's league table.
+   */
+  private async assertCompetitionInOrg(competitionId: string | null, orgId: string) {
+    if (!competitionId) return;
+    const competition = await this.prisma.competition.findUnique({
+      where: { id: competitionId },
+      select: { organizationId: true },
+    });
+    if (!competition || competition.organizationId !== orgId) {
+      throw new BadRequestException('Competition must belong to the active organization');
+    }
+  }
+
   async list(userId: string, orgId: string, teamId?: string, competitionId?: string) {
     await this.members.assertMember(userId, orgId, 'VIEWER');
     const matches = await this.prisma.match.findMany({
@@ -83,6 +99,8 @@ export class MatchesService {
     if (homeTeam.sport !== input.sport || awayTeam.sport !== input.sport) {
       throw new BadRequestException('Both teams must match the selected sport');
     }
+
+    await this.assertCompetitionInOrg(input.competitionId ?? null, orgId);
 
     const lineupPlayerIds = [
       ...new Set([...input.homeLineup, ...input.awayLineup].map((l) => l.playerId)),
@@ -141,7 +159,11 @@ export class MatchesService {
   }
 
   async update(userId: string, id: string, input: UpdateMatchInput) {
-    await this.members.assertMember(userId, await this.orgOf(id), 'SCORER');
+    const orgId = await this.orgOf(id);
+    await this.members.assertMember(userId, orgId, 'SCORER');
+    if (input.competitionId !== undefined) {
+      await this.assertCompetitionInOrg(input.competitionId, orgId);
+    }
     const match = await this.prisma.match.update({
       where: { id },
       data: {

@@ -74,10 +74,13 @@ export class CompetitionsService {
    * An in-progress match has no result to contribute.
    */
   async standings(userId: string, id: string): Promise<StandingsEntry[]> {
-    await this.members.assertMember(userId, await this.orgOf(id), 'VIEWER');
+    const orgId = await this.orgOf(id);
+    await this.members.assertMember(userId, orgId, 'VIEWER');
 
     const matches = await this.prisma.match.findMany({
-      where: { competitionId: id, status: 'COMPLETED' },
+      // Scoped by org as well as competition: the FK is a bare nullable column, so a
+      // match from another org that names this competition must not reach the table.
+      where: { competitionId: id, organizationId: orgId, status: 'COMPLETED' },
       include: {
         homeTeam: { select: { id: true, name: true } },
         awayTeam: { select: { id: true, name: true } },
@@ -108,13 +111,15 @@ export class CompetitionsService {
   /**
    * Scorers across the competition. Scoring events are whatever the sport config
    * marks as scoring — the same judgement the timeline uses — so this stays
-   * correct for sports where a score is not one goal.
+   * correct for sports where a score is not one goal. An event the config credits
+   * to the opposing side (an own goal) counts for neither player.
    */
   async topScorers(userId: string, id: string): Promise<TopScorer[]> {
-    await this.members.assertMember(userId, await this.orgOf(id), 'VIEWER');
+    const orgId = await this.orgOf(id);
+    await this.members.assertMember(userId, orgId, 'VIEWER');
 
     const matches = await this.prisma.match.findMany({
-      where: { competitionId: id, status: 'COMPLETED' },
+      where: { competitionId: id, organizationId: orgId, status: 'COMPLETED' },
       include: { events: { where: { voided: false } } },
     });
 
@@ -123,7 +128,7 @@ export class CompetitionsService {
       const config = getSportConfig(m.sport);
       const stats = reduceMatch(config, m.id, m.events.map(toEvent), m.statTier);
       for (const entry of stats.timeline) {
-        if (!entry.isScoring || !entry.playerId) continue;
+        if (!entry.playerId || entry.scoringSide !== entry.side) continue;
         goals.set(entry.playerId, (goals.get(entry.playerId) ?? 0) + 1);
       }
     }

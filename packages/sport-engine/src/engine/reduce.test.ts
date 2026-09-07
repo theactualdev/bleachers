@@ -67,6 +67,21 @@ describe('reduceMatch — football scoring', () => {
     expect(timeline.map((t) => t.isScoring)).toEqual([true, false, true]);
   });
 
+  it('marks the credited side on the timeline, opponent-side for an own goal', () => {
+    const events = [
+      ev({ type: 'goal', side: 'HOME', playerId: 'p1' }),
+      ev({ type: 'own_goal', side: 'HOME', playerId: 'd1' }),
+      ev({ type: 'yellow_card', side: 'AWAY', playerId: 'p3' }),
+    ];
+    const { timeline } = reduceMatch(footballConfig, MATCH, events);
+    expect(timeline.map((t) => t.scoringSide)).toEqual(['HOME', 'AWAY', null]);
+    // A scorer tally is `scoringSide === side`, so the own goal credits nobody.
+    const scorers = timeline
+      .filter((t) => t.playerId && t.scoringSide === t.side)
+      .map((t) => t.playerId);
+    expect(scorers).toEqual(['p1']);
+  });
+
   it('breaks the score down by period', () => {
     const events = [
       ev({ type: 'goal', side: 'HOME', playerId: 'p1', period: 1 }),

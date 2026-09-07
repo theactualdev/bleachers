@@ -37,6 +37,13 @@ export const TimelineEntrySchema = z.object({
   /** Running score immediately after this event, as [home, away]. */
   scoreAfter: z.tuple([z.number().int(), z.number().int()]),
   isScoring: z.boolean(),
+  /**
+   * Which side the points went to, or null when the event is not scoring. This differs
+   * from `side` whenever the sport credits the opponent — an own goal, say — so a
+   * consumer tallying scorers can tell "this player scored" from "this player conceded"
+   * without reimplementing the sport config's judgement.
+   */
+  scoringSide: MatchSideSchema.nullable(),
 });
 export type TimelineEntry = z.infer<typeof TimelineEntrySchema>;
 
