@@ -10,10 +10,14 @@ import {
   useCreateTeamPlayer,
   usePlayers,
   useRoster,
+  useTeamMatches,
   useTeamMemberships,
   useTeams,
+  useTeamStats,
 } from '@/lib/hooks';
 import { ApiError } from '@/lib/api';
+import { FormStrip } from '@/components/form-strip';
+import { MatchCard } from '@/components/match-card';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -91,6 +95,17 @@ function TeamProfile({ id }: { id: string }) {
   const { data: players } = usePlayers();
   const memberships = useTeamMemberships();
   const add = useAddToRoster(id);
+  const { data: seasonStats } = useTeamStats(id);
+  const { data: teamMatches } = useTeamMatches(id);
+
+  // Results are finished matches; fixtures are everything still to come or in
+  // progress. Both newest-first, which is how a club page is read.
+  const results = (teamMatches ?? []).filter(
+    (m) => m.status === 'COMPLETED' || m.status === 'ABANDONED',
+  );
+  const fixtures = (teamMatches ?? []).filter(
+    (m) => m.status === 'SCHEDULED' || m.status === 'LIVE' || m.status === 'PAUSED',
+  );
 
   const rosterIds = new Set(roster?.map((r) => r.playerId) ?? []);
 
@@ -145,6 +160,32 @@ function TeamProfile({ id }: { id: string }) {
           </h1>
         </div>
 
+        {seasonStats && seasonStats.played > 0 && (
+          <Card className="p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-eyebrow text-ink-3">This season</p>
+              <FormStrip form={seasonStats.form} />
+            </div>
+            <div className="grid grid-cols-4 gap-2 text-center">
+              {[
+                ['Played', seasonStats.played],
+                ['Won', seasonStats.won],
+                ['Drawn', seasonStats.drawn],
+                ['Lost', seasonStats.lost],
+              ].map(([label, value]) => (
+                <div key={label as string}>
+                  <p className="font-display tabnums text-ink-1 text-xl font-bold">{value}</p>
+                  <p className="text-eyebrow text-ink-3">{label}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-ink-3 mt-3 text-center text-xs">
+              <span className="tabnums text-ink-2">{seasonStats.goalsFor}</span> scored ·{' '}
+              <span className="tabnums text-ink-2">{seasonStats.goalsAgainst}</span> conceded
+            </p>
+          </Card>
+        )}
+
         <Select
           value=""
           options={options}
@@ -191,6 +232,28 @@ function TeamProfile({ id }: { id: string }) {
                 </Link>
               );
             })}
+          </div>
+        )}
+
+        {fixtures.length > 0 && (
+          <div>
+            <h2 className="text-eyebrow text-ink-3 mb-2">Fixtures</h2>
+            <div className="flex flex-col gap-2.5">
+              {fixtures.map((m) => (
+                <MatchCard key={m.id} match={m} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {results.length > 0 && (
+          <div>
+            <h2 className="text-eyebrow text-ink-3 mb-2">Results</h2>
+            <div className="flex flex-col gap-2.5">
+              {results.map((m) => (
+                <MatchCard key={m.id} match={m} />
+              ))}
+            </div>
           </div>
         )}
       </div>

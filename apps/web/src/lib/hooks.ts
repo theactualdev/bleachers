@@ -15,6 +15,7 @@ import type {
   RegisterTeamInput,
   RosterEntryWithPlayer,
   Team,
+  TeamStats,
 } from '@bleachers/types';
 import type { SportConfig } from '@bleachers/sport-engine';
 import { apiGet, apiPost, API_URL, ApiError } from './api';
@@ -225,6 +226,16 @@ export function useCreateTeamPlayer(teamId: string) {
     },
   });
 }
+
+/** Season W/D/L, goals and form for one team. Counts COMPLETED matches only. */
+export const useTeamStats = (teamId: string) => {
+  const orgId = useActiveOrgId();
+  return useQuery({
+    queryKey: ['team-stats', orgId, teamId],
+    queryFn: () => apiGet<TeamStats>(`/api/teams/${teamId}/stats`),
+    enabled: !!teamId && !!orgId,
+  });
+};
 
 // ── Matches ──────────────────────────────────────────────────────────────────
 export const useMatches = () => {
