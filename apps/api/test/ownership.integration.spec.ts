@@ -6,7 +6,7 @@ import { TeamsService } from '../src/teams/teams.service';
 import { PlayersService } from '../src/players/players.service';
 import { MatchesService } from '../src/matches/matches.service';
 import { MembershipService } from '../src/orgs/membership.service';
-import { createTestUser, deleteTestUser, getPersonalOrg } from './helpers/auth';
+import { connectWithRetry, createTestUser, deleteTestUser, getPersonalOrg } from './helpers/auth';
 
 /**
  * Integration test against a real Postgres: teams/players are org-scoped resources.
@@ -31,7 +31,7 @@ describe('Cross-org isolation on teams/players (integration)', () => {
   let intruderPlayerId = '';
 
   beforeAll(async () => {
-    await prisma.$connect();
+    await connectWithRetry(prisma);
     ownerId = await createTestUser();
     intruderId = await createTestUser();
     ownerOrg = await getPersonalOrg(ownerId);

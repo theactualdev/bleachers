@@ -26,6 +26,19 @@ async function withRetry<T>(fn: () => Promise<T>, attempts = 6): Promise<T> {
   throw lastError;
 }
 
+/**
+ * Open Prisma's connection with the same backoff `createTestUser` gets.
+ *
+ * The first connect against the shared pooler is the other flaky step in these
+ * suites — it has failed here with P1001 while the project was waking or the
+ * pooler was saturated. It matters more than a flaky assertion would: vitest's
+ * `retry` covers test bodies, NOT hooks, so one blip in `beforeAll` fails the
+ * whole file and reports every test in it as skipped.
+ */
+export async function connectWithRetry(prisma: { $connect: () => Promise<void> }): Promise<void> {
+  await withRetry(() => prisma.$connect());
+}
+
 /** Creates a confirmed Supabase auth user; the DB trigger creates its profile. */
 export async function createTestUser(): Promise<string> {
   return withRetry(async () => {

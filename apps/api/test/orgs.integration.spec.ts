@@ -4,7 +4,7 @@ import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { OrgsService } from '../src/orgs/orgs.service';
 import { MembershipService } from '../src/orgs/membership.service';
-import { createTestUser, deleteTestUser, getPersonalOrg } from './helpers/auth';
+import { connectWithRetry, createTestUser, deleteTestUser, getPersonalOrg } from './helpers/auth';
 
 describe('Organizations (integration)', () => {
   const prisma = new PrismaService();
@@ -16,7 +16,7 @@ describe('Organizations (integration)', () => {
   let orgId = '';
 
   beforeAll(async () => {
-    await prisma.$connect();
+    await connectWithRetry(prisma);
     ownerId = await createTestUser();
     joinerId = await createTestUser();
     const org = await orgs.create(ownerId, { name: 'Test League' });

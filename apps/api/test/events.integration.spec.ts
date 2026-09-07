@@ -7,7 +7,7 @@ import { StatisticsService } from '../src/statistics/statistics.service';
 import { MatchesService } from '../src/matches/matches.service';
 import { MembershipService } from '../src/orgs/membership.service';
 import type { RealtimeGateway } from '../src/realtime/realtime.gateway';
-import { createTestUser, deleteTestUser, getPersonalOrg } from './helpers/auth';
+import { connectWithRetry, createTestUser, deleteTestUser, getPersonalOrg } from './helpers/auth';
 
 /**
  * Integration test against a real Postgres (uses DATABASE_URL). Exercises the event-sourcing
@@ -35,7 +35,7 @@ describe('Events + Statistics (integration)', () => {
   let matchId = '';
 
   beforeAll(async () => {
-    await prisma.$connect();
+    await connectWithRetry(prisma);
     userId = await createTestUser();
     orgId = await getPersonalOrg(userId);
     const home = await prisma.team.create({

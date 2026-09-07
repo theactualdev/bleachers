@@ -4,7 +4,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { TeamsService } from '../src/teams/teams.service';
 import { MembershipService } from '../src/orgs/membership.service';
-import { createTestUser, deleteTestUser, getPersonalOrg } from './helpers/auth';
+import { connectWithRetry, createTestUser, deleteTestUser, getPersonalOrg } from './helpers/auth';
 
 /**
  * Composite team registration: a single call creates a team, its team-born
@@ -23,7 +23,7 @@ describe('Composite team registration (integration)', () => {
   const teamIds: string[] = [];
 
   beforeAll(async () => {
-    await prisma.$connect();
+    await connectWithRetry(prisma);
     ownerId = await createTestUser();
     intruderId = await createTestUser();
     ownerOrg = await getPersonalOrg(ownerId);
