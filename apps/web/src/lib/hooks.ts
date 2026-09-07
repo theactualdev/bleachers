@@ -12,6 +12,7 @@ import type {
   MembershipInfo,
   Player,
   PlayerCareerStats,
+  PlayerMatchLogEntry,
   RegisterTeamInput,
   RosterEntryWithPlayer,
   Team,
@@ -234,6 +235,16 @@ export const useTeamStats = (teamId: string) => {
     queryKey: ['team-stats', orgId, teamId],
     queryFn: () => apiGet<TeamStats>(`/api/teams/${teamId}/stats`),
     enabled: !!teamId && !!orgId,
+  });
+};
+
+/** A player's per-match log, newest first. */
+export const usePlayerMatches = (playerId: string) => {
+  const orgId = useActiveOrgId();
+  return useQuery({
+    queryKey: ['player-matches', orgId, playerId],
+    queryFn: () => apiGet<PlayerMatchLogEntry[]>(`/api/players/${playerId}/matches`),
+    enabled: !!playerId && !!orgId,
   });
 };
 

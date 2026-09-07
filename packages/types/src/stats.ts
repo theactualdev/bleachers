@@ -67,6 +67,21 @@ export const PlayerCareerStatsSchema = z.object({
 });
 export type PlayerCareerStats = z.infer<typeof PlayerCareerStatsSchema>;
 
+/** One row of a player's match log: what they did, and how the match went. */
+export const PlayerMatchLogEntrySchema = z.object({
+  matchId: IdSchema,
+  scheduledAt: z.string().datetime({ offset: true }),
+  status: z.string(),
+  side: MatchSideSchema,
+  opponentName: z.string(),
+  /** [goalsFor, goalsAgainst] from this player's side. */
+  score: z.tuple([z.number().int(), z.number().int()]),
+  /** Null unless the match is COMPLETED — an unfinished match has no result. */
+  result: z.enum(['W', 'D', 'L']).nullable(),
+  stats: z.array(StatValueSchema),
+});
+export type PlayerMatchLogEntry = z.infer<typeof PlayerMatchLogEntrySchema>;
+
 /** Win/Draw/Loss + form for a team. */
 export const TeamStatsSchema = z.object({
   teamId: IdSchema,

@@ -23,6 +23,16 @@ export class StatisticsController {
     return this.stats.playerCareer(user.id, id, parsed);
   }
 
+  @Get('players/:id/matches')
+  playerMatches(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('sport') sport?: string,
+  ) {
+    const parsed: Sport = SportSchema.catch('FOOTBALL').parse(sport);
+    return this.stats.playerMatches(user.id, id, parsed);
+  }
+
   @Get('teams/:id/stats')
   teamStats(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.stats.teamStats(user.id, id);
