@@ -9,8 +9,9 @@ const SEEDED_MATCH = '20000000-0000-4000-8000-000000000001';
 test('public match page shows teams, score, and timeline', async ({ page }) => {
   await page.goto(`/m/${SEEDED_MATCH}`);
 
-  await expect(page.getByText('Harbour FC')).toBeVisible();
-  await expect(page.getByText('Union Athletic')).toBeVisible();
+  // Each name also heads its lineup column further down; `first()` is the scoreboard.
+  await expect(page.getByText('Harbour FC').first()).toBeVisible();
+  await expect(page.getByText('Union Athletic').first()).toBeVisible();
 
   // The seeded match is 1–1; the scoreboard renders both goals.
   await expect(page.locator('text=Timeline')).toBeVisible();
