@@ -1,0 +1,46 @@
+name: Keep-alive
+
+# Supabase's free tier pauses a project after a week without activity, and the
+# Railway API sleeps when idle, so one quiet pre-launch week was enough to take
+# production down (2026-09-15 until the next push on 2026-10-25). Once a day this
+# touches the database directly, then the live API, and fails if either is
+# unreachable: GitHub emails a failed scheduled run to whoever last edited the
+# cron line, so this doubles as the outage alert we didn't have.
+#
+# Public-repo caveat: GitHub disables scheduled workflows after 60 days with no
+# repository activity, and these runs don't count. If it stops, re-enable it
+# from the Actions tab or with `gh workflow enable keep-alive.yml`.
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      # Direct, so the database stays awake even while the API is down.
+      # psql ships on the Ubuntu runner image; it rejects Prisma-only query
+      # params (pgbouncer=, connection_limit=), so those are stripped. The
+      # result is discarded: run logs on a public repo are public.
+      - name: Query the database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          psql "${DATABASE_URL%%\?*}" -v ON_ERROR_STOP=1 -tAc 'select count(*) from public."Match"' > /dev/null
+          echo "database reachable"
+
+      # Wakes the sleeping API and exercises API -> Postgres end to end. Runs
+      # even if the step above failed, so one run reports on both.
+      - name: Hit the live API
+        if: always()
+        run: |
+          curl -fsS --retry 3 --retry-delay 20 --retry-all-errors --max-time 60 \
+            -o /dev/null -w 'public match: HTTP %{http_code} in %{time_total}s\n' \
+            https://bleachers-production.up.railway.app/api/public/matches/20000000-0000-4000-8000-000000000001
