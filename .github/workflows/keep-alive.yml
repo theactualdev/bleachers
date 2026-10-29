@@ -27,13 +27,14 @@ jobs:
     steps:
       # Direct, so the database stays awake even while the API is down.
       # psql ships on the Ubuntu runner image; it rejects Prisma-only query
-      # params (pgbouncer=, connection_limit=), so those are stripped. The
-      # result is discarded: run logs on a public repo are public.
+      # params (pgbouncer=, connection_limit=), so those are stripped. Tables
+      # are the @@map names in schema.prisma, not the model names. The result
+      # is discarded: run logs on a public repo are public.
       - name: Query the database
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          psql "${DATABASE_URL%%\?*}" -v ON_ERROR_STOP=1 -tAc 'select count(*) from public."Match"' > /dev/null
+          psql "${DATABASE_URL%%\?*}" -v ON_ERROR_STOP=1 -tAc 'select count(*) from public.match' > /dev/null
           echo "database reachable"
 
       # Wakes the sleeping API and exercises API -> Postgres end to end. Runs
